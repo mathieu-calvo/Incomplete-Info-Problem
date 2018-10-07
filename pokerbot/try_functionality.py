@@ -9,6 +9,6 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.INFO)
 
 
-def try_functionality():
+def run():
     hu = HeadsUpGame(3, 10, 2, "Lulu", "Math")
     hu.start_game()

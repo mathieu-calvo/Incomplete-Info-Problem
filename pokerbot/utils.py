@@ -1,34 +1,22 @@
 
-def action_input(question, answer=None, default=None):
-    """Ask a question, return an answer.
-
-    <question> is a string that is presented to the user.
-    <answer> is a list of strings presented as a choice.
-    User may type only first letters
-    <default> is the presumed answer if the user just hits <Enter>.
-
+def action_input(question, answer=None):
     """
+    Getting actions from players by prompting them to choose among a set of
+    options
 
-    if answer is None:
-        answer = ['yes', 'no']
-    else:
-        answer = [i.lower() for i in answer]
+    Args:
+        question (str): question to ask the player
+        answer (obj): list of available choices, default None
 
-    # if <default> is None or <default> is not an expected answers
-    # <default> will be the first of the expected answers
-    if default is None or default not in answer:
-        default = answer[0]
+    Returns:
+        (str): action taken by player
+    """
+    answer = [i.lower() for i in answer]
 
-    prompt = '/'.join([
-        "\x1b[1;1m{0}\x1b[1;m".format(i) if i == default else i
-        for i in answer
-    ])
+    prompt = '/'.join(["\x1b[1;1m{0}\x1b[1;m".format(i) for i in answer])
 
     while True:
         choice = input("{0} [{1}]: ".format(question, prompt)).lower()
-
-        if default is not None and choice == '':
-            return default
 
         if choice in answer:
             return choice
@@ -45,13 +33,16 @@ def action_input(question, answer=None, default=None):
 
 
 def amount_input(question, minimum=None):
-    """Ask a question, return an answer.
-
-    <question> is a string that is presented to the user.
-    <minimum> is the minimum amount that is required.
-
     """
+    Getting amount to bet/raise from players by prompting them
 
+    Args:
+        question (str): question to ask the player
+        minimum (int): minimum amount that is required, default None
+
+    Returns:
+        (str): amount player wishes to bet/raise
+    """
     prompt = "min:{}".format(minimum)
 
     while True:
@@ -61,5 +52,3 @@ def amount_input(question, minimum=None):
             return choice
         else:
             print(" -- Bet is too low")
-
-

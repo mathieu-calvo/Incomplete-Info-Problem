@@ -10,7 +10,20 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.INFO)
 
 
-def evaluate_hand_rank(hand):
+def evaluate_hand_ranking(hand):
+    """
+    Evaluate ranking of poker hand on a scale from 1 to 9 and provide
+    information useful for tiebreaking hands of the same ranking
+
+    Args:
+        hand (tuple): tuple of 5 Card objects
+
+    Returns:
+        (int):  ranking of poker hand on a scale from 1 to 9
+        (list): list of integers representing, in decreasing order of
+        importance, ranking of cards relevant for tiebreaking. Logic
+        is dependent on the ranking.
+    """
 
     # organize information from hand
     suits_counter = Counter(map(lambda x: x.suit, hand))
@@ -78,6 +91,17 @@ def evaluate_hand_rank(hand):
 
 
 def compare_two_hands(hand1, hand2):
+    """
+    Compares two class.Hand objects based on their resp. best combination
+    and tiebreaker
+
+    Args:
+        hand1 (class.Hand): class object Hand
+        hand2 (class.Hand): class object Hand
+
+    Returns:
+        (str): describing outcome: ["hand1","hand2","draw"]
+    """
     if hand1.best_rank > hand2.best_rank:
         return "hand1"
     elif hand1.best_rank < hand2.best_rank:
@@ -95,6 +119,17 @@ def compare_two_hands(hand1, hand2):
 
 
 def tie_breaking(hands, tiebreakers):
+    """
+    Compares combinations with same ranking based on their resp. tiebreaker
+
+    Args:
+        hands (list): list containing tuples of 5 Card objects
+        tiebreakers (list): list containing lists of integers
+
+    Returns:
+        best_hands (list): list containing one tuple of 5 Card objects
+        tiebreakers (list): list containing one list of integers
+    """
     logging.debug("{} hands going to tiebreak".format(len(hands)))
     best_hands = hands
     i = 0
@@ -117,8 +152,24 @@ def tie_breaking(hands, tiebreakers):
 
 
 class Hand:
+    """
+    Hand object for a given player that integrate private and communal cards
+    when available. Include methods to assess strength of the hand.
+
+    Attributes:
+        private_cards (list): list of two Card objects given pre flop
+        public_cards (list): list of Card objects given post flop
+        best_rank (list): rank of best combination at the moment of evaluation
+        best_combination (list): best combination at the moment of evaluation
+        best_tiebreaker (list): tiebreaker for best combination at the
+        moment of evaluation
+    """
 
     def __init__(self, private_cards):
+        """
+        Instantiate a hand object based on private cards
+        e.g. Hand(Card(14,"C"),Card(13,"C"))
+        """
         self.private_cards = private_cards
         self.public_cards = []
         self.best_rank = []
@@ -126,18 +177,28 @@ class Hand:
         self.best_tiebreaker = []
 
     def add_public_cards(self, public_cards):
+        """
+        Method to ingest public cards
+
+        Args:
+            public_cards (list): list containing one or several Card objects
+        """
         self.public_cards = self.public_cards + public_cards
 
     def update_best_combination(self):
-
+        """
+        Method to evaluate best combination and update corresponding
+        attributes based on private and public cards collected so far
+        """
         assert self.public_cards  # check list is not empty
 
-        logging.debug('Evaluating best combination')
+        logging.debug('Evaluating best combination, based on cards')
         # number of combinations
         hands = list(combinations(self.private_cards + self.public_cards, 5))
+        logging.debug('{} combinations to evaluate'.format(len(hands)))
 
         # evaluate possible hands
-        hand_evaluations = [evaluate_hand_rank(hand) for hand in hands]
+        hand_evaluations = [evaluate_hand_ranking(hand) for hand in hands]
         hand_rankings = [hand_evaluation[0]
                          for hand_evaluation in hand_evaluations]
 
@@ -155,7 +216,8 @@ class Hand:
             self.best_combination = best_hands
             self.best_tiebreaker = best_hands_tiebreakers
         else:
-            logging.debug('Tiebreaking best combination')
+            logging.debug('Tiebreaking best combination, among {} candidates'
+                          .format(len(best_hands)))
             best_hand, best_tiebreaker = \
                 tie_breaking(best_hands, best_hands_tiebreakers)
             self.best_rank = best_rank
@@ -163,12 +225,15 @@ class Hand:
             self.best_tiebreaker = best_tiebreaker
 
     def pretty_str_best_combination(self):
-        return [str(card.pretty_rank) + card.pretty_suit
+        """ Returns pretty card representation for the best_combination """
+        return [card.pretty_rank + card.pretty_suit
                 for card in self.best_combination[0]]
 
     def human_readable_rank(self):
+        """ Converts numerical ranking of hand into human-readable version """
         return HUMAN_READABLE_RANKINGS[self.best_rank]
 
     def __repr__(self):
-        return str([str(card.pretty_rank) + card.pretty_suit
+        """ Pretty card representation of all cards in hand """
+        return str([card.pretty_rank + card.pretty_suit
                     for card in self.private_cards + self.public_cards])

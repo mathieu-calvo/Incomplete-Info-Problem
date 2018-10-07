@@ -1,36 +1,66 @@
 
 import logging
 
+from ..globals import FACE_CARDS_RANK_DICT, PRETTY_SUIT_DICT
+
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.INFO)
 
 
 def prettify_rank(numeric_rank):
+    """
+    Transform rank for face cards from numeric to str character
+
+    Args:
+        numeric_rank (int): explicit
+
+    Returns:
+        str: rank in prettified str format
+    """
     # check that value is acceptable range
     if not 2 <= numeric_rank <= 14:
-        raise ValueError('Invalid card, numeric rank: {}'.format(
-            numeric_rank))
-    # transform to pretty format
-    face_cards_dict = {14: 'A', 11: 'J', 12: 'Q', 13: 'K'}
-    if numeric_rank in face_cards_dict.keys():
-        return face_cards_dict[numeric_rank]
-    else:
-        return numeric_rank
+        raise ValueError('Invalid card, numeric rank: {}'
+                         .format(numeric_rank))
+    # transform rank to pretty format for face cards
+    if numeric_rank in FACE_CARDS_RANK_DICT.keys():
+        return FACE_CARDS_RANK_DICT[numeric_rank]
+    # otherwise keep numeric value
+    return str(numeric_rank)
 
 
 def prettify_suit(suit_str):
-    pretty_suit_dict = {'C': '\u2667', 'D': '\u2662', 'H': '\u2661',
-                        'S': '\u2664'}
+    """
+    Transform suit from letter to symbol
+
+    Args:
+        suit_str (int): possible entries: C,D,H or S
+
+    Returns:
+        str: suit in prettified symbol
+    """
     # check that value is within acceptable range
-    if suit_str not in pretty_suit_dict.keys():
+    if suit_str not in PRETTY_SUIT_DICT.keys():
         raise ValueError('Invalid card, suit: {}'.format(suit_str))
     else:
-        return pretty_suit_dict[suit_str]
+        return PRETTY_SUIT_DICT[suit_str]
 
 
 class Card:
-    
+    """
+    Instantiating the object returns a card object from a 52-card deck
+
+    Attributes:
+        rank (int): rank of the card from 2 to 14
+        suit (str): suit of the card, possible entries: C,D,H,S
+        pretty_rank (str): rank in prettified str format for face cards
+        pretty_suit (str): suit in prettified symbol
+    """
+
     def __init__(self, numeric_rank, suit):
+        """
+        Instantiating the object using a numeric rank and a one letter suit
+        e.g. Card(14,"C")
+        """
         self.rank = numeric_rank
         self.suit = suit
         self.pretty_rank = prettify_rank(self.rank)
@@ -40,4 +70,4 @@ class Card:
         return str(self.rank) + self.suit
 
     def __repr__(self):
-        return str(self.pretty_rank) + self.pretty_suit
+        return self.pretty_rank + self.pretty_suit

@@ -10,8 +10,30 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
 
 
 class HandPlayed:
+    """
+    Hand being played object managing flow control for the hand played
+    being two poker players, based on the current parameters of the game
+
+    Attributes:
+        playerBB (class.Player): player who will play big blind on this hand
+        playerSB (class.Player): player who will play small blind on this hand
+        pot_size (int): size of the pot on that hand
+        big_blind (int): initial compulsory stake
+        small_blind (int): second initial compulsory stake
+        handBB (class.Hand): hand object of player on big blind
+        handSB (class.Hand): hand object of player on small blind
+        flop (list): list of communal cards coming on the flop
+        turn (list): list containing communal card coming on the turn
+        river (list): list containing communal card coming on the river
+    """
 
     def __init__(self, player1, player2, big_blind, cards):
+        """
+        Instantiate a hand played object based on players, parameters,
+        and list of 9 randomly drawn cards
+        e.g. HandPlayed(Player(100,'Joe'), Player(100,'Mike'),
+                        10, Deck().deal_cards(9))
+        """
         self.playerBB = player1
         self.playerSB = player2
         self.pot_size = 0
@@ -25,17 +47,17 @@ class HandPlayed:
 
     def get_action_from_player(self, player, imbalance_size):
         """
-        Function to take care of getting actions from players.
+        Getting actions from players by prompting them for answers
 
         Args:
-            player (class.Player) -- class object Player
-            imbalance_size (int) -- pre action imbalance size, i.e.
+            player (class.Player): class object Player
+            imbalance_size (int): pre action imbalance size, i.e.
             positive if one player has put more into the pot than the other
 
         Returns:
-            has_folded (bool) -- let know whether someone folded
-            is_all_in (bool) -- let know whether someone is all in
-            imbalance_size (int) -- post action imbalance size
+            has_folded (bool): let know whether someone folded
+            is_all_in (bool): let know whether someone is all in
+            imbalance_size (int): post action imbalance size
         """
         logging.info('Action is on {}'.format(player.name))
         stack = player.stack
@@ -50,7 +72,7 @@ class HandPlayed:
             actions = ['check', 'bet', 'fold', 'all-in']
 
         choice = action_input("Action?", actions)
-        logging.info('{} {}s'.format(player.name, choice))
+        logging.info('{}\'s choice is: {}'.format(player.name, choice))
 
         if choice == 'fold':
             return True, False, imbalance_size
@@ -81,14 +103,14 @@ class HandPlayed:
 
     def betting_round(self, is_pre_flop=False):
         """
-        Function to take care of each betting round during the hand.
+        Flow control of each betting round during the hand.
 
         Keyword arguments:
-            is_pre_flop (bool) -- flag for post/pre flop (default False)
+            is_pre_flop (bool): flag for post/pre flop (default False)
 
         Returns:
-            someone_has_folded (bool) -- flag to pass on whether someone folds
-            someone_is_all_in (bool) -- flag to pass on whether someone is
+            someone_has_folded (bool): flag to pass on whether someone folds
+            someone_is_all_in (bool): flag to pass on whether someone is
             all in
         """
         if is_pre_flop:
@@ -118,7 +140,14 @@ class HandPlayed:
         return False, False
 
     def play(self):
+        """
+        Flow control of each hand being played. Includes launching betting
+        rounds, controlling conditions for early ending and evaluating
+        winner at showdown
 
+        Returns:
+            (None): if someone folds before showdown
+        """
         # blinds
         logging.info('{} is Big Blind'.format(self.playerBB.name))
         self.playerBB.bet_amount(self.big_blind)
