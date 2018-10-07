@@ -6,3 +6,4 @@ from .flow_control.player import Player
 from .flow_control.handplayed import HandPlayed
 from .flow_control.headsupgame import HeadsUpGame
 from .hand_evaluation.hand import Hand, compare_two_hands
+from .try_functionality import run

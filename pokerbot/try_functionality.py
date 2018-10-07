@@ -6,9 +6,9 @@ from .flow_control.headsupgame import HeadsUpGame
 # from hand_evaluation.hand import Hand
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 
 
 def run():
-    hu = HeadsUpGame(3, 10, 2, "Lulu", "Math")
+    hu = HeadsUpGame(1, 100, 10, "Lulu", "Math")
     hu.start_game()

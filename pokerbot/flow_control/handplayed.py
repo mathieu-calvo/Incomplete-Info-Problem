@@ -6,7 +6,7 @@ from ..hand_evaluation.hand import Hand, compare_two_hands
 from ..utils import action_input, amount_input
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 
 
 class HandPlayed:
@@ -122,7 +122,7 @@ class HandPlayed:
         # initiate variables
         nb_actions = 0
         player = action_cycle.__next__()
-        someone_has_gone_all_in = True
+        someone_has_gone_all_in = False
         while (nb_actions < 2) or (nb_actions >= 2 and imbalance_size != 0):
             # get action from player and update attributes of betting round
             has_folded, is_all_in, imbalance_size = \
@@ -163,6 +163,8 @@ class HandPlayed:
         # first betting round, pre-flop
         someone_has_folded, someone_is_all_in = \
             self.betting_round(is_pre_flop=True)
+        logging.info('Someone has folded: {}'.format(someone_has_folded))
+        logging.info('Someone is all in: {}'.format(someone_is_all_in))
         if someone_has_folded:
             return None
 
@@ -171,6 +173,8 @@ class HandPlayed:
         if not someone_is_all_in:
             someone_has_folded, someone_is_all_in = \
                 self.betting_round(is_pre_flop=False)
+            logging.info('Someone has folded: {}'.format(someone_has_folded))
+            logging.info('Someone is all in: {}'.format(someone_is_all_in))
             if someone_has_folded:
                 return None
 
