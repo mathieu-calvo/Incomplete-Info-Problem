@@ -8,7 +8,7 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.INFO)
 
 
-class Deck:
+class Deck(object):
     """
     Instantiating the object returns a list of 52 flow_control.card.Card
     objects, corresponding to the 52 cards present in a normal deck of cards

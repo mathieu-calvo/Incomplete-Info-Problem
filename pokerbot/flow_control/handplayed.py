@@ -9,7 +9,7 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.DEBUG)
 
 
-class HandPlayed:
+class HandPlayed(object):
     """
     Hand being played object managing flow control for the hand played
     being two poker players, based on the current parameters of the game
@@ -45,7 +45,8 @@ class HandPlayed:
         self.turn = [cards[7]]
         self.river = [cards[8]]
 
-    def get_action_from_player(self, player, imbalance_size):
+    def get_action_from_player(self, player, imbalance_size,
+                               other_player_is_all_in):
         """
         Getting actions from players by prompting them for answers
 
@@ -53,6 +54,7 @@ class HandPlayed:
             player (class.Player): class object Player
             imbalance_size (int): pre action imbalance size, i.e.
             positive if one player has put more into the pot than the other
+            other_player_is_all_in (bool): explicit, to set up maximum bet
 
         Returns:
             has_folded (bool): let know whether someone folded
@@ -83,7 +85,12 @@ class HandPlayed:
             self.pot_size += imbalance_size
             return False, False, 0
         elif choice == 'bet':
-            bet_size = amount_input("Amount?", minimum=self.big_blind)
+            if other_player_is_all_in:
+                bet_size = amount_input("Amount?",
+                                        minimum=self.big_blind,
+                                        maximum=imbalance_size)
+            else:
+                bet_size = amount_input("Amount?", minimum=self.big_blind)
             player.bet_amount(bet_size)
             self.pot_size += bet_size
             return False, False, bet_size
@@ -92,14 +99,23 @@ class HandPlayed:
             # except pre-flop where the imbalance is the sb but the raise
             # needs to be at least the bb
             min_raise = imbalance_size + max(imbalance_size, self.big_blind)
-            raise_size = amount_input("Amount?", minimum=min_raise)
+            if other_player_is_all_in:
+                raise_size = amount_input("Amount?",
+                                          minimum=min_raise,
+                                          maximum=imbalance_size)
+            else:
+                raise_size = amount_input("Amount?", minimum=min_raise)
             player.bet_amount(raise_size)
             self.pot_size += raise_size
             return False, False, raise_size - imbalance_size
         elif choice == 'all-in':
-            player.bet_amount(stack)
-            self.pot_size += stack
-            return False, True, stack - imbalance_size
+            if other_player_is_all_in:
+                all_in_amount = min(stack, imbalance_size)
+            else:
+                all_in_amount = stack
+            player.bet_amount(all_in_amount)
+            self.pot_size += all_in_amount
+            return False, True, all_in_amount - imbalance_size
 
     def betting_round(self, is_pre_flop=False):
         """
@@ -123,10 +139,12 @@ class HandPlayed:
         nb_actions = 0
         player = action_cycle.__next__()
         someone_has_gone_all_in = False
-        while (nb_actions < 2) or (nb_actions >= 2 and imbalance_size != 0):
+        while (nb_actions < 2) or (nb_actions >= 2 and imbalance_size > 0):
             # get action from player and update attributes of betting round
             has_folded, is_all_in, imbalance_size = \
-                self.get_action_from_player(player, imbalance_size)
+                self.get_action_from_player(player,
+                                            imbalance_size,
+                                            someone_has_gone_all_in)
             # if has folded, get out of betting round and attribute winnings
             if has_folded:
                 action_cycle.__next__().win_pot(self.pot_size)
@@ -136,6 +154,15 @@ class HandPlayed:
             nb_actions += 1
             player = action_cycle.__next__()
         if someone_has_gone_all_in:
+            # if someone has gone all-in, there may be an imbalance left and
+            # the first player to have moved may have had more chips,
+            # in that case he needs to get back from the pot
+            if imbalance_size < 0:
+                # player will always be the first mover
+                # they can't be a negative imbalance if the person who
+                # concludes the betting round has more chips
+                player.get_back_from_pot(-imbalance_size)
+                self.pot_size += imbalance_size
             return False, True
         return False, False
 
@@ -163,8 +190,6 @@ class HandPlayed:
         # first betting round, pre-flop
         someone_has_folded, someone_is_all_in = \
             self.betting_round(is_pre_flop=True)
-        logging.info('Someone has folded: {}'.format(someone_has_folded))
-        logging.info('Someone is all in: {}'.format(someone_is_all_in))
         if someone_has_folded:
             return None
 
@@ -173,8 +198,6 @@ class HandPlayed:
         if not someone_is_all_in:
             someone_has_folded, someone_is_all_in = \
                 self.betting_round(is_pre_flop=False)
-            logging.info('Someone has folded: {}'.format(someone_has_folded))
-            logging.info('Someone is all in: {}'.format(someone_is_all_in))
             if someone_has_folded:
                 return None
 

@@ -10,7 +10,7 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.INFO)
 
 
-class HeadsUpGame:
+class HeadsUpGame(object):
     """
     Heads-up game object managing flow control for game being played being two
     poker players, based on the parameters of the game

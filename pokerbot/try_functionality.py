@@ -10,5 +10,5 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
 
 
 def run():
-    hu = HeadsUpGame(1, 100, 10, "Lulu", "Math")
+    hu = HeadsUpGame(10, 100, 10, "Lulu", "Math")
     hu.start_game()

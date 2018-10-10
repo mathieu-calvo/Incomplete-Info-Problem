@@ -5,7 +5,7 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.INFO)
 
 
-class Player:
+class Player(object):
     """
     Poker player object capable of playing games
 
@@ -60,3 +60,16 @@ class Player:
         self.stack = self.stack + int(pot_size/2)
         logging.info('{} splits the pot: +{}$'
                      .format(self.name, int(pot_size/2)))
+
+    def get_back_from_pot(self, amount):
+        """
+        Adjust stack based on amount player is getting back from a pot where he
+        has put in more in the pot than the other player has chips,
+        and the other player end up going all in
+
+        Args:
+            amount (int): any number
+        """
+        self.stack = self.stack + amount
+        logging.info('{} gets +{}$ back from the pot'
+                     .format(self.name, amount))

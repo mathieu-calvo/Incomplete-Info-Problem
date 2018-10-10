@@ -151,7 +151,7 @@ def tie_breaking(hands, tiebreakers):
         return best_hands, tiebreakers
 
 
-class Hand:
+class Hand(object):
     """
     Hand object for a given player that integrate private and communal cards
     when available. Include methods to assess strength of the hand.

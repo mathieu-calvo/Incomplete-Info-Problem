@@ -45,7 +45,7 @@ def prettify_suit(suit_str):
         return PRETTY_SUIT_DICT[suit_str]
 
 
-class Card:
+class Card(object):
     """
     Instantiating the object returns a card object from a 52-card deck
 
@@ -71,3 +71,6 @@ class Card:
 
     def __repr__(self):
         return self.pretty_rank + self.pretty_suit
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
