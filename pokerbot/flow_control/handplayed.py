@@ -12,7 +12,7 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
 class HandPlayed(object):
     """
     Hand being played object managing flow control for the hand played
-    being two poker players, based on the current parameters of the game
+    between two poker players, based on the current parameters of the game
 
     Attributes:
         playerBB (class.Player): player who will play big blind on this hand
@@ -61,21 +61,11 @@ class HandPlayed(object):
             is_all_in (bool): let know whether someone is all in
             imbalance_size (int): post action imbalance size
         """
-        logging.info('Action is on {}'.format(player.name))
-        stack = player.stack
-        logging.info('{} has a stack of {} $'.format(player.name, stack))
 
-        if imbalance_size > 0:
-            if imbalance_size >= stack:
-                actions = ['all-in', 'fold']
-            else:
-                actions = ['call', 'raise', 'fold', 'all-in']
-        else:
-            actions = ['check', 'bet', 'fold', 'all-in']
+        # getting action from player
+        choice = player.take_action(imbalance_size)
 
-        choice = action_input("Action?", actions)
-        logging.info('{}\'s choice is: {}'.format(player.name, choice))
-
+        # return meaningful parameters accordingly
         if choice == 'fold':
             return True, False, imbalance_size
         elif choice == 'check':
@@ -86,12 +76,10 @@ class HandPlayed(object):
             return False, False, 0
         elif choice == 'bet':
             if other_player_is_all_in:
-                bet_size = amount_input("Amount?",
-                                        minimum=self.big_blind,
-                                        maximum=imbalance_size)
+                bet_size = player.choose_amount(minimum=self.big_blind,
+                                                maximum=imbalance_size)
             else:
-                bet_size = amount_input("Amount?", minimum=self.big_blind)
-            player.bet_amount(bet_size)
+                bet_size = player.choose_amount(minimum=self.big_blind)
             self.pot_size += bet_size
             return False, False, bet_size
         elif choice == 'raise':
@@ -100,19 +88,17 @@ class HandPlayed(object):
             # needs to be at least the bb
             min_raise = imbalance_size + max(imbalance_size, self.big_blind)
             if other_player_is_all_in:
-                raise_size = amount_input("Amount?",
-                                          minimum=min_raise,
-                                          maximum=imbalance_size)
+                raise_size = player.choose_amount(minimum=min_raise,
+                                                  maximum=imbalance_size)
             else:
-                raise_size = amount_input("Amount?", minimum=min_raise)
-            player.bet_amount(raise_size)
+                raise_size = player.choose_amount(minimum=min_raise)
             self.pot_size += raise_size
             return False, False, raise_size - imbalance_size
         elif choice == 'all-in':
             if other_player_is_all_in:
-                all_in_amount = min(stack, imbalance_size)
+                all_in_amount = min(player.stack, imbalance_size)
             else:
-                all_in_amount = stack
+                all_in_amount = player.stack
             player.bet_amount(all_in_amount)
             self.pot_size += all_in_amount
             return False, True, all_in_amount - imbalance_size
@@ -191,6 +177,7 @@ class HandPlayed(object):
         someone_has_folded, someone_is_all_in = \
             self.betting_round(is_pre_flop=True)
         if someone_has_folded:
+            self.pot_size = 0  # reset pot size in case want to replay hand
             return None
 
         logging.info('Flop comes {}'.format(self.flop))
@@ -199,6 +186,7 @@ class HandPlayed(object):
             someone_has_folded, someone_is_all_in = \
                 self.betting_round(is_pre_flop=False)
             if someone_has_folded:
+                self.pot_size = 0  # reset pot size in case want to replay hand
                 return None
 
         logging.info('Turn comes {}'.format(self.turn))
@@ -207,6 +195,7 @@ class HandPlayed(object):
             someone_has_folded, someone_is_all_in = \
                 self.betting_round(is_pre_flop=False)
             if someone_has_folded:
+                self.pot_size = 0  # reset pot size in case want to replay hand
                 return None
 
         logging.info('River comes {}'.format(self.river))
@@ -215,6 +204,7 @@ class HandPlayed(object):
             someone_has_folded, someone_is_all_in = \
                 self.betting_round(is_pre_flop=False)
             if someone_has_folded:
+                self.pot_size = 0  # reset pot size in case want to replay hand
                 return None
 
         # Evaluate winner at showdown
@@ -240,3 +230,5 @@ class HandPlayed(object):
         else:
             self.playerBB.split_pot(self.pot_size)
             self.playerSB.split_pot(self.pot_size)
+
+        self.pot_size = 0  # reset pot size in case want to replay hand
