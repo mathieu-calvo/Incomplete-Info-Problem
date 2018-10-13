@@ -32,7 +32,7 @@ def action_input(question, answer=None):
                   (", ".join(answer[:-1]), answer[-1]))
 
 
-def amount_input(question, minimum=None, maximum=None):
+def amount_input(question, minimum=None, maximum=None, pot_size=None):
     """
     Getting amount to bet/raise from players by prompting them
 
@@ -40,21 +40,23 @@ def amount_input(question, minimum=None, maximum=None):
         question (str): question to ask the player
         minimum (int): minimum amount that is required, default None
         maximum (int): maximum amount that is required, default None
+        pot_size (int): amount already in pot, default None
 
     Returns:
         (str): amount player wishes to bet/raise
     """
-    if minimum and maximum:
-        prompt = "min:{} - max:{}".format(minimum, maximum)
+    if not (minimum is None) and (maximum is None):
+        prompt = "min:{} - max:{} - pot_size:{}"\
+            .format(minimum, maximum, pot_size)
     elif minimum:
-        prompt = "min:{}".format(minimum)
+        prompt = "min:{} - pot_size:{}".format(minimum, pot_size)
     else:
-        prompt = ""
+        prompt = "pot_size:{}".format(pot_size)
 
     while True:
         choice = int(input("{0} [{1}]: ".format(question, prompt)).lower())
 
-        if minimum and maximum:
+        if not (minimum is None) and (maximum is None):
             if minimum <= choice <= maximum:
                 return choice
             elif minimum <= choice:

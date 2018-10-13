@@ -9,6 +9,8 @@ from .flow_control.headsupgame import HeadsUpGame
 from .hand_evaluation.hand import Hand, \
     compare_two_hands, tie_breaking, evaluate_hand_ranking
 
-from .opponents.random_policy import RandomPolicyOpponent
+from .opponents.randomplayer import RandomPlayer
+from .opponents.humanplayer import HumanPlayer
+# from .opponents.fishplayer import FishPlayer
 
 from .try_functionality import run

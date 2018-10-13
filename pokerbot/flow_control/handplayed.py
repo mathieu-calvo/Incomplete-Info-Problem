@@ -3,7 +3,7 @@ import logging
 from itertools import cycle
 
 from ..hand_evaluation.hand import Hand, compare_two_hands
-from ..utils import action_input, amount_input
+from ..opponents.humanplayer import HumanPlayer
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.DEBUG)
@@ -48,7 +48,8 @@ class HandPlayed(object):
     def get_action_from_player(self, player, imbalance_size,
                                other_player_is_all_in):
         """
-        Getting actions from players by prompting them for answers
+        Getting actions from players, method will vary depending on type of
+        player (i.e. which class or subclass it belongs to)
 
         Args:
             player (class.Player): class object Player
@@ -77,10 +78,16 @@ class HandPlayed(object):
         elif choice == 'bet':
             if other_player_is_all_in:
                 bet_size = player.choose_amount(minimum=self.big_blind,
-                                                maximum=imbalance_size)
+                                                maximum=imbalance_size,
+                                                pot_size=self.pot_size)
             else:
-                bet_size = player.choose_amount(minimum=self.big_blind)
+                bet_size = player.choose_amount(minimum=self.big_blind,
+                                                maximum=player.stack,
+                                                pot_size=self.pot_size)
             self.pot_size += bet_size
+            # check if player is all in
+            if player.stack == 0:
+                return False, True, bet_size
             return False, False, bet_size
         elif choice == 'raise':
             # minimum raise is calling the imbalance and doubling it
@@ -89,10 +96,16 @@ class HandPlayed(object):
             min_raise = imbalance_size + max(imbalance_size, self.big_blind)
             if other_player_is_all_in:
                 raise_size = player.choose_amount(minimum=min_raise,
-                                                  maximum=imbalance_size)
+                                                  maximum=imbalance_size,
+                                                  pot_size=self.pot_size)
             else:
-                raise_size = player.choose_amount(minimum=min_raise)
+                raise_size = player.choose_amount(minimum=min_raise,
+                                                  maximum=player.stack,
+                                                  pot_size=self.pot_size)
             self.pot_size += raise_size
+            # check if player is all in
+            if player.stack == 0:
+                return False, True, raise_size - imbalance_size
             return False, False, raise_size - imbalance_size
         elif choice == 'all-in':
             if other_player_is_all_in:
@@ -118,14 +131,23 @@ class HandPlayed(object):
         if is_pre_flop:
             imbalance_size = self.big_blind - self.small_blind
             action_cycle = cycle([self.playerSB, self.playerBB])
+            hand_cycle = cycle([self.handSB, self.handBB])
         else:
             imbalance_size = 0
             action_cycle = cycle([self.playerBB, self.playerSB])
+            hand_cycle = cycle([self.handBB, self.handSB])
         # initiate variables
         nb_actions = 0
         player = action_cycle.__next__()
+        hand = hand_cycle.__next__()
         someone_has_gone_all_in = False
         while (nb_actions < 2) or (nb_actions >= 2 and imbalance_size > 0):
+            # show information if user is human
+            if isinstance(player, HumanPlayer):
+                logging.info("{}\'s private cards: {}"
+                             .format(player.name, hand.private_cards))
+                logging.info("{}\'s public cards: {}"
+                             .format(player.name, hand.public_cards))
             # get action from player and update attributes of betting round
             has_folded, is_all_in, imbalance_size = \
                 self.get_action_from_player(player,
@@ -139,6 +161,7 @@ class HandPlayed(object):
             someone_has_gone_all_in = someone_has_gone_all_in or is_all_in
             nb_actions += 1
             player = action_cycle.__next__()
+            hand = hand_cycle.__next__()
         if someone_has_gone_all_in:
             # if someone has gone all-in, there may be an imbalance left and
             # the first player to have moved may have had more chips,
@@ -168,10 +191,10 @@ class HandPlayed(object):
         self.pot_size += self.big_blind + self.small_blind
 
         # players' private cards
-        logging.info('{} has {}'.format(self.playerBB.name,
-                                        self.handBB.private_cards))
-        logging.info('{} has {}'.format(self.playerSB.name,
-                                        self.handSB.private_cards))
+        logging.debug('{} has {}'.format(self.playerBB.name,
+                                         self.handBB.private_cards))
+        logging.debug('{} has {}'.format(self.playerSB.name,
+                                         self.handSB.private_cards))
 
         # first betting round, pre-flop
         someone_has_folded, someone_is_all_in = \
@@ -181,6 +204,9 @@ class HandPlayed(object):
             return None
 
         logging.info('Flop comes {}'.format(self.flop))
+        # integrate info
+        self.handBB.add_public_cards(self.flop)
+        self.handSB.add_public_cards(self.flop)
         # second betting round, post flop
         if not someone_is_all_in:
             someone_has_folded, someone_is_all_in = \
@@ -190,6 +216,9 @@ class HandPlayed(object):
                 return None
 
         logging.info('Turn comes {}'.format(self.turn))
+        # integrate info
+        self.handBB.add_public_cards(self.turn)
+        self.handSB.add_public_cards(self.turn)
         # Third betting round, post turn
         if not someone_is_all_in:
             someone_has_folded, someone_is_all_in = \
@@ -199,6 +228,9 @@ class HandPlayed(object):
                 return None
 
         logging.info('River comes {}'.format(self.river))
+        # integrate info
+        self.handBB.add_public_cards(self.river)
+        self.handSB.add_public_cards(self.river)
         # Fourth and last betting round, post river
         if not someone_is_all_in:
             someone_has_folded, someone_is_all_in = \
@@ -208,15 +240,13 @@ class HandPlayed(object):
                 return None
 
         # Evaluate winner at showdown
-        # integrate info
-        self.handBB.add_public_cards(self.flop + self.turn + self.river)
         self.handBB.update_best_combination()
         logging.info('{}\'s best combination is {}'
                      .format(self.playerBB.name, self.handBB.best_combination))
-        self.handSB.add_public_cards(self.flop + self.turn + self.river)
         self.handSB.update_best_combination()
         logging.info('{}\'s best combination is {}'
                      .format(self.playerSB.name, self.handSB.best_combination))
+        # human readable format
         logging.info('{} has {}'.format(self.playerBB.name,
                                         self.handBB.human_readable_rank()))
         logging.info('{} has {}'.format(self.playerSB.name,

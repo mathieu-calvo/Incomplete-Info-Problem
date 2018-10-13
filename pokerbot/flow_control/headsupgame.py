@@ -39,8 +39,8 @@ class HeadsUpGame(object):
         # initialising variables
         self.position = random.choice([True, False])
         self.hand_number = 1
-        self.player1 = Player(starting_stack, player1)
-        self.player2 = Player(starting_stack, player2)
+        self.player1 = player1
+        self.player2 = player2
         self.deck = Deck()
 
     def start_game(self):
