@@ -32,12 +32,12 @@ class Player(object):
             bet_size (int): any number
         """
         if bet_size >= self.stack:
-            logging.info('{} bets {}$ into the pot and is ALL-IN'
+            logging.debug('{} bets {}$ into the pot and is ALL-IN'
                          .format(self.name, self.stack))
             self.stack = 0
         else:
             self.stack = self.stack - bet_size
-            logging.info('{} bets {}$ into the pot'
+            logging.debug('{} bets {}$ into the pot'
                          .format(self.name, bet_size))
 
     def win_pot(self, pot_size):

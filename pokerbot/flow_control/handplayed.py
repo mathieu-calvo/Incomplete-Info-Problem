@@ -12,7 +12,8 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
 class HandPlayed(object):
     """
     Hand being played object managing flow control for the hand played
-    between two poker players, based on the current parameters of the game
+    between two poker players, based on the current parameters of the game.
+    Keeps track of what is happening during the hand as well.
 
     Attributes:
         playerBB (class.Player): player who will play big blind on this hand
@@ -25,13 +26,15 @@ class HandPlayed(object):
         flop (list): list of communal cards coming on the flop
         turn (list): list containing communal card coming on the turn
         river (list): list containing communal card coming on the river
+        hand_history (list): hand history object from the point of view of
+        one given player
     """
 
     def __init__(self, player1, player2, big_blind, cards):
         """
         Instantiate a hand played object based on players, parameters,
         and list of 9 randomly drawn cards
-        e.g. HandPlayed(Player(100,'Joe'), Player(100,'Mike'),
+        e.g. HandPlayed(HumanPlayer(100,'Joe'), HumanPlayer(100,'Mike'),
                         10, Deck().deal_cards(9))
         """
         self.playerBB = player1
@@ -44,6 +47,7 @@ class HandPlayed(object):
         self.flop = [cards[4], cards[5], cards[6]]
         self.turn = [cards[7]]
         self.river = [cards[8]]
+        self.hand_history = []
 
     def get_action_from_player(self, player, imbalance_size,
                                other_player_is_all_in):
@@ -144,9 +148,9 @@ class HandPlayed(object):
         while (nb_actions < 2) or (nb_actions >= 2 and imbalance_size > 0):
             # show information if user is human
             if isinstance(player, HumanPlayer):
-                logging.info("{}\'s private cards: {}"
+                logging.debug("{}\'s private cards: {}"
                              .format(player.name, hand.private_cards))
-                logging.info("{}\'s public cards: {}"
+                logging.debug("{}\'s public cards: {}"
                              .format(player.name, hand.public_cards))
             # get action from player and update attributes of betting round
             has_folded, is_all_in, imbalance_size = \
@@ -185,7 +189,7 @@ class HandPlayed(object):
             (None): if someone folds before showdown
         """
         # blinds
-        logging.info('{} is Big Blind'.format(self.playerBB.name))
+        logging.debug('{} is Big Blind'.format(self.playerBB.name))
         self.playerBB.bet_amount(self.big_blind)
         self.playerSB.bet_amount(self.small_blind)
         self.pot_size += self.big_blind + self.small_blind
@@ -203,7 +207,7 @@ class HandPlayed(object):
             self.pot_size = 0  # reset pot size in case want to replay hand
             return None
 
-        logging.info('Flop comes {}'.format(self.flop))
+        logging.debug('Flop comes {}'.format(self.flop))
         # integrate info
         self.handBB.add_public_cards(self.flop)
         self.handSB.add_public_cards(self.flop)
@@ -215,7 +219,7 @@ class HandPlayed(object):
                 self.pot_size = 0  # reset pot size in case want to replay hand
                 return None
 
-        logging.info('Turn comes {}'.format(self.turn))
+        logging.debug('Turn comes {}'.format(self.turn))
         # integrate info
         self.handBB.add_public_cards(self.turn)
         self.handSB.add_public_cards(self.turn)
@@ -227,7 +231,7 @@ class HandPlayed(object):
                 self.pot_size = 0  # reset pot size in case want to replay hand
                 return None
 
-        logging.info('River comes {}'.format(self.river))
+        logging.debug('River comes {}'.format(self.river))
         # integrate info
         self.handBB.add_public_cards(self.river)
         self.handSB.add_public_cards(self.river)
@@ -241,16 +245,18 @@ class HandPlayed(object):
 
         # Evaluate winner at showdown
         self.handBB.update_best_combination()
-        logging.info('{}\'s best combination is {}'
-                     .format(self.playerBB.name, self.handBB.best_combination))
+        logging.debug('{}\'s best combination is {}'
+                      .format(self.playerBB.name,
+                              self.handBB.best_combination))
         self.handSB.update_best_combination()
-        logging.info('{}\'s best combination is {}'
-                     .format(self.playerSB.name, self.handSB.best_combination))
+        logging.debug('{}\'s best combination is {}'
+                      .format(self.playerSB.name,
+                              self.handSB.best_combination))
         # human readable format
-        logging.info('{} has {}'.format(self.playerBB.name,
-                                        self.handBB.human_readable_rank()))
-        logging.info('{} has {}'.format(self.playerSB.name,
-                                        self.handSB.human_readable_rank()))
+        logging.debug('{} has {}'.format(self.playerBB.name,
+                                         self.handBB.human_readable_rank()))
+        logging.debug('{} has {}'.format(self.playerSB.name,
+                                         self.handSB.human_readable_rank()))
         # evaluate winner at showdown
         winner = compare_two_hands(self.handBB, self.handSB)
         if winner == 'hand1':

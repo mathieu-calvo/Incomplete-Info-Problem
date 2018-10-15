@@ -28,8 +28,8 @@ class FishPlayer(Player):
         Returns:
             choice (str): the action taken
         """
-        logging.info('Action is on {}'.format(self.name))
-        logging.info('{} has a stack of {}$'.format(self.name, self.stack))
+        logging.debug('Action is on {}'.format(self.name))
+        logging.debug('{} has a stack of {}$'.format(self.name, self.stack))
 
         if imbalance_size > 0:
             if imbalance_size >= self.stack:
@@ -46,5 +46,5 @@ class FishPlayer(Player):
         else:
             choice = 'all-in'
 
-        logging.info('{}\'s choice is: {}'.format(self.name, choice))
+        logging.debug('{}\'s choice is: {}'.format(self.name, choice))
         return choice

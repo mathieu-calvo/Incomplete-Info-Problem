@@ -11,8 +11,11 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
 
 
 def run():
-    player_one = HumanPlayer(500, "Luci")
-    player_two = RandomPlayer(500, "Cybi")
-    player_three = FishPlayer(500, "Nemo")
-    hu = HeadsUpGame(5, 1000, 20, player_three, player_two)
+    starting_stack = 500
+    big_blind = 20
+    max_nb_hands = 10
+    # player_one = HumanPlayer(starting_stack, "Luci")
+    player_two = RandomPlayer(starting_stack, "Toss")
+    player_three = FishPlayer(starting_stack, "Nemo")
+    hu = HeadsUpGame(max_nb_hands, big_blind, player_three, player_two)
     hu.start_game()

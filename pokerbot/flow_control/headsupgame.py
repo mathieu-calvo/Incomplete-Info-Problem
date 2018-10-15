@@ -17,7 +17,6 @@ class HeadsUpGame(object):
 
     Attributes:
         max_nb_hands (int): maximum number of hands, game stops once reached
-        starting_stack (int): initial number of chips per player
         big_blind (int): initial compulsory stake
         position (bool): randomly selected initial position
         hand_number (int): index to keep track of number of hands played
@@ -26,15 +25,13 @@ class HeadsUpGame(object):
         deck (class.Deck): 52-card deck
     """
 
-    def __init__(self, max_nb_hands, starting_stack, big_blind,
-                 player1, player2):
+    def __init__(self, max_nb_hands, big_blind, player1, player2):
         """
         Instantiate a game object based on parameters and players' names
-        e.g. HeadsUpGame(100, 1000, 10, "Joe", "Mike")
+        e.g. HeadsUpGame(100, 10, "Joe", "Mike")
         """
         # parameters of the game
         self.max_nb_hands = max_nb_hands
-        self.starting_stack = starting_stack
         self.big_blind = big_blind
         # initialising variables
         self.position = random.choice([True, False])
