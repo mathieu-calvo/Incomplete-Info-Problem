@@ -18,27 +18,31 @@ class HeadsUpGame(object):
     Attributes:
         max_nb_hands (int): maximum number of hands, game stops once reached
         big_blind (int): initial compulsory stake
-        position (bool): randomly selected initial position
+        hero_is_big_blind (bool): randomly selected initial position
         hand_number (int): index to keep track of number of hands played
         player_hero (subclass.Player): first player, our Hero
         player_villain (subclass.Player): second player, our Villain
         deck (class.Deck): 52-card deck
+        hero_game_history (list): game history object from the point of view of
+        our hero player
     """
 
     def __init__(self, max_nb_hands, big_blind, player_hero, player_villain):
         """
-        Instantiate a game object based on parameters and players' names
-        e.g. HeadsUpGame(100, 10, "Joe", "Mike")
+        Instantiate a game object based on parameters and players' object
+        e.g. HeadsUpGame(100, 10, HumanPlayer(100,"Joe"), FishPlayer(100,
+        "Mike"))
         """
         # parameters of the game
         self.max_nb_hands = max_nb_hands
         self.big_blind = big_blind
         # initialising variables
-        self.position = random.choice([True, False])
+        self.hero_is_big_blind = random.choice([True, False])
         self.hand_number = 1
         self.player_hero = player_hero
         self.player_villain = player_villain
         self.deck = Deck()
+        self.hero_game_history = []
 
     def start_game(self):
         """
@@ -54,7 +58,7 @@ class HeadsUpGame(object):
             # draw nine cards randomly from deck, 5 common + 2 per player
             drawn_cards = self.deck.deal_cards(9)
             # current position determines which player plays big blind
-            if self.position:
+            if self.hero_is_big_blind:
                 current_hand = HandPlayed(self.player_hero,
                                           self.player_villain,
                                           self.big_blind, drawn_cards)
@@ -75,7 +79,7 @@ class HeadsUpGame(object):
                 all_players_have_chips = False
             # update attributes when hand is over
             self.hand_number += 1
-            self.position = not self.position
+            self.hero_is_big_blind = not self.hero_is_big_blind
             # TODO: potentially store evolution of stacks and perf metrics here
             # print white line for readability
             logging.info("")

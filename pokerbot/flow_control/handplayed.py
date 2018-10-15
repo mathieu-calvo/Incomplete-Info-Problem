@@ -26,9 +26,38 @@ class HandPlayed(object):
         flop (list): list of communal cards coming on the flop
         turn (list): list containing communal card coming on the turn
         river (list): list containing communal card coming on the river
-        hand_history (list): hand history object from the point of view of
-        one given player
+        hand_history_BB (str): hand history object seen from BB player
+        hand_history_SB (str): hand history object seen from SB player
     """
+
+    def initialize_hand_history(self, player):
+        """
+        Initialize hand history for a given player
+
+        Args:
+            player (subclass.Player): class object Player
+
+        Returns:
+            hand_history (str): human readable hand history
+        """
+        # check what position the player is in
+        if player == self.playerBB:
+            position = "Big Blind"
+        else:
+            position = "Small Blind"
+
+        return "***** /n" \
+               + "User: {}".format(player.name) \
+               + "Position: {}".format(position) \
+               + "Stacks: {} ({}), {} ({})".format(self.playerBB.name,
+                                                   self.playerBB.stack,
+                                                   self.playerSB.name,
+                                                   self.playerSB.stack) \
+               + "{} posts small blind({}) {} posts big " \
+                 "blind({})".format(self.playerSB.name, self.small_blind,
+                                    self.playerBB.name, self.big_blind) \
+               + "***** Dealing private cards " \
+                 "to {}: {}".format(player.name, player.private_cards)
 
     def __init__(self, player1, player2, big_blind, cards):
         """
@@ -47,7 +76,8 @@ class HandPlayed(object):
         self.flop = [cards[4], cards[5], cards[6]]
         self.turn = [cards[7]]
         self.river = [cards[8]]
-        self.hand_history = []
+        self.hand_history_BB = self.initialize_hand_history(self.playerBB)
+        self.hand_history_SB = self.initialize_hand_history(self.playerSB)
 
     def get_action_from_player(self, player, imbalance_size,
                                other_player_is_all_in):
@@ -193,6 +223,15 @@ class HandPlayed(object):
         self.playerBB.bet_amount(self.big_blind)
         self.playerSB.bet_amount(self.small_blind)
         self.pot_size += self.big_blind + self.small_blind
+
+        # fill in hand history attributes
+
+        # pre flop action
+        # *** Dealing flop: [ ]
+        # flop action
+        # *** Dealing turn: []
+        # *** Dealing river: []
+        # *** Summary
 
         # players' private cards
         logging.debug('{} has {}'.format(self.playerBB.name,
