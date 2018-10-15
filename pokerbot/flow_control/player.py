@@ -33,12 +33,12 @@ class Player(object):
         """
         if bet_size >= self.stack:
             logging.debug('{} bets {}$ into the pot and is ALL-IN'
-                         .format(self.name, self.stack))
+                          .format(self.name, self.stack))
             self.stack = 0
         else:
             self.stack = self.stack - bet_size
             logging.debug('{} bets {}$ into the pot'
-                         .format(self.name, bet_size))
+                          .format(self.name, bet_size))
 
     def win_pot(self, pot_size):
         """
@@ -74,3 +74,6 @@ class Player(object):
         self.stack = self.stack + amount
         logging.info('{} gets +{}$ back from the pot'
                      .format(self.name, amount))
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
