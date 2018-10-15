@@ -149,9 +149,9 @@ class HandPlayed(object):
             # show information if user is human
             if isinstance(player, HumanPlayer):
                 logging.debug("{}\'s private cards: {}"
-                             .format(player.name, hand.private_cards))
+                              .format(player.name, hand.private_cards))
                 logging.debug("{}\'s public cards: {}"
-                             .format(player.name, hand.public_cards))
+                              .format(player.name, hand.public_cards))
             # get action from player and update attributes of betting round
             has_folded, is_all_in, imbalance_size = \
                 self.get_action_from_player(player,
