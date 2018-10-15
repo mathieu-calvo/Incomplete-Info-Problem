@@ -43,21 +43,27 @@ class HandPlayed(object):
         # check what position the player is in
         if player == self.playerBB:
             position = "Big Blind"
+            private_cards = self.handBB.private_cards
         else:
             position = "Small Blind"
+            private_cards = self.handSB.private_cards
 
-        return "***** /n" \
-               + "User: {}".format(player.name) \
-               + "Position: {}".format(position) \
-               + "Stacks: {} ({}), {} ({})".format(self.playerBB.name,
-                                                   self.playerBB.stack,
-                                                   self.playerSB.name,
-                                                   self.playerSB.stack) \
+        return "\n***** Hand starts\n" \
+               + "User: {}\n".format(player.name) \
+               + "Position: {}\n".format(position) \
+               + "Stacks: {} ({}), {} ({})\n".format(self.playerBB.name,
+                                                     self.playerBB.stack,
+                                                     self.playerSB.name,
+                                                     self.playerSB.stack) \
                + "{} posts small blind({}) {} posts big " \
-                 "blind({})".format(self.playerSB.name, self.small_blind,
-                                    self.playerBB.name, self.big_blind) \
+                 "blind({})\n".format(self.playerSB.name, self.small_blind,
+                                      self.playerBB.name, self.big_blind) \
                + "***** Dealing private cards " \
-                 "to {}: {}".format(player.name, player.private_cards)
+                 "to {}: {}\n".format(player.name, private_cards)
+
+    def update_hand_histories(self, text):
+        self.hand_history_BB += text
+        self.hand_history_SB += text
 
     def __init__(self, player1, player2, big_blind, cards):
         """
@@ -102,10 +108,13 @@ class HandPlayed(object):
 
         # return meaningful parameters accordingly
         if choice == 'fold':
+            self.update_hand_histories("{} folds\n".format(player.name))
             return True, False, imbalance_size
         elif choice == 'check':
+            self.update_hand_histories("{} checks\n".format(player.name))
             return False, False, 0
         elif choice == 'call':
+            self.update_hand_histories("{} calls\n".format(player.name))
             player.bet_amount(imbalance_size)
             self.pot_size += imbalance_size
             return False, False, 0
@@ -121,7 +130,11 @@ class HandPlayed(object):
             self.pot_size += bet_size
             # check if player is all in
             if player.stack == 0:
+                self.update_hand_histories("{} bets {}, and is all-in\n"
+                                           .format(player.name, bet_size))
                 return False, True, bet_size
+            self.update_hand_histories("{} bets {}\n".format(player.name,
+                                                             bet_size))
             return False, False, bet_size
         elif choice == 'raise':
             # minimum raise is calling the imbalance and doubling it
@@ -137,10 +150,15 @@ class HandPlayed(object):
                                                   maximum=player.stack,
                                                   pot_size=self.pot_size)
             self.pot_size += raise_size
+            amount_on_top = raise_size - imbalance_size
             # check if player is all in
             if player.stack == 0:
-                return False, True, raise_size - imbalance_size
-            return False, False, raise_size - imbalance_size
+                self.update_hand_histories("{} raises {}, and is all-in\n"
+                                           .format(player.name, amount_on_top))
+                return False, True, amount_on_top
+            self.update_hand_histories("{} raises {}\n".format(player.name,
+                                                               amount_on_top))
+            return False, False, amount_on_top
         elif choice == 'all-in':
             if other_player_is_all_in:
                 all_in_amount = min(player.stack, imbalance_size)
@@ -148,7 +166,10 @@ class HandPlayed(object):
                 all_in_amount = player.stack
             player.bet_amount(all_in_amount)
             self.pot_size += all_in_amount
-            return False, True, all_in_amount - imbalance_size
+            amount_on_top = all_in_amount - imbalance_size
+            self.update_hand_histories("{} bets {}, and is all-in\n"
+                                       .format(player.name, amount_on_top))
+            return False, True, amount_on_top
 
     def betting_round(self, is_pre_flop=False):
         """
@@ -165,23 +186,23 @@ class HandPlayed(object):
         if is_pre_flop:
             imbalance_size = self.big_blind - self.small_blind
             action_cycle = cycle([self.playerSB, self.playerBB])
-            hand_cycle = cycle([self.handSB, self.handBB])
+            is_action_on_bb_cycle = cycle([False, True])
         else:
             imbalance_size = 0
             action_cycle = cycle([self.playerBB, self.playerSB])
-            hand_cycle = cycle([self.handBB, self.handSB])
+            is_action_on_bb_cycle = cycle([True, False])
         # initiate variables
         nb_actions = 0
         player = action_cycle.__next__()
-        hand = hand_cycle.__next__()
+        is_action_on_bb = is_action_on_bb_cycle.__next__()
         someone_has_gone_all_in = False
         while (nb_actions < 2) or (nb_actions >= 2 and imbalance_size > 0):
             # show information if user is human
             if isinstance(player, HumanPlayer):
-                logging.debug("{}\'s private cards: {}"
-                              .format(player.name, hand.private_cards))
-                logging.debug("{}\'s public cards: {}"
-                              .format(player.name, hand.public_cards))
+                if is_action_on_bb:
+                    logging.info("{}".format(self.hand_history_BB))
+                else:
+                    logging.info("{}".format(self.hand_history_SB))
             # get action from player and update attributes of betting round
             has_folded, is_all_in, imbalance_size = \
                 self.get_action_from_player(player,
@@ -195,7 +216,7 @@ class HandPlayed(object):
             someone_has_gone_all_in = someone_has_gone_all_in or is_all_in
             nb_actions += 1
             player = action_cycle.__next__()
-            hand = hand_cycle.__next__()
+            is_action_on_bb = is_action_on_bb_cycle.__next__()
         if someone_has_gone_all_in:
             # if someone has gone all-in, there may be an imbalance left and
             # the first player to have moved may have had more chips,
@@ -224,15 +245,6 @@ class HandPlayed(object):
         self.playerSB.bet_amount(self.small_blind)
         self.pot_size += self.big_blind + self.small_blind
 
-        # fill in hand history attributes
-
-        # pre flop action
-        # *** Dealing flop: [ ]
-        # flop action
-        # *** Dealing turn: []
-        # *** Dealing river: []
-        # *** Summary
-
         # players' private cards
         logging.debug('{} has {}'.format(self.playerBB.name,
                                          self.handBB.private_cards))
@@ -247,6 +259,8 @@ class HandPlayed(object):
             return None
 
         logging.debug('Flop comes {}'.format(self.flop))
+        self.update_hand_histories("***** Dealing flop: {}\n"
+                                   .format(self.flop))
         # integrate info
         self.handBB.add_public_cards(self.flop)
         self.handSB.add_public_cards(self.flop)
@@ -259,6 +273,8 @@ class HandPlayed(object):
                 return None
 
         logging.debug('Turn comes {}'.format(self.turn))
+        self.update_hand_histories("***** Dealing turn: {} - {}\n"
+                                   .format(self.flop, self.turn))
         # integrate info
         self.handBB.add_public_cards(self.turn)
         self.handSB.add_public_cards(self.turn)
@@ -271,6 +287,8 @@ class HandPlayed(object):
                 return None
 
         logging.debug('River comes {}'.format(self.river))
+        self.update_hand_histories("***** Dealing river: {} - {} - {}\n"
+                                   .format(self.flop, self.turn, self.river))
         # integrate info
         self.handBB.add_public_cards(self.river)
         self.handSB.add_public_cards(self.river)
@@ -282,12 +300,27 @@ class HandPlayed(object):
                 self.pot_size = 0  # reset pot size in case want to replay hand
                 return None
 
-        # Evaluate winner at showdown
+        # Evaluate best combinations
         self.handBB.update_best_combination()
+        self.handSB.update_best_combination()
+        # Evaluate winner at showdown
+        self.update_hand_histories("***** Summary: \n"
+                                   "{} shows {}, best hand is {}, {}\n"
+                                   "{} shows {}, best hand is {}, {}\n"
+                                   "Pot size: {}\n"
+                                   .format(self.playerBB.name,
+                                           self.handBB.private_cards,
+                                           self.handBB.best_combination,
+                                           self.handBB.human_readable_rank(),
+                                           self.playerSB.name,
+                                           self.handSB.private_cards,
+                                           self.handSB.best_combination,
+                                           self.handSB.human_readable_rank(),
+                                           self.pot_size))
+
         logging.debug('{}\'s best combination is {}'
                       .format(self.playerBB.name,
                               self.handBB.best_combination))
-        self.handSB.update_best_combination()
         logging.debug('{}\'s best combination is {}'
                       .format(self.playerSB.name,
                               self.handSB.best_combination))

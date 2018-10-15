@@ -62,12 +62,16 @@ class HeadsUpGame(object):
                 current_hand = HandPlayed(self.player_hero,
                                           self.player_villain,
                                           self.big_blind, drawn_cards)
+                # start playing the hand given current attributes
+                current_hand.play()
+                logging.info("{}".format(current_hand.hand_history_BB))
             else:
                 current_hand = HandPlayed(self.player_villain,
                                           self.player_hero,
                                           self.big_blind, drawn_cards)
-            # start playing the hand given current attributes
-            current_hand.play()
+                # start playing the hand given current attributes
+                current_hand.play()
+                logging.info("{}".format(current_hand.hand_history_SB))
             # check if one player is out of chips
             if self.player_hero.stack == 0:
                 logging.info('{} won the game'
