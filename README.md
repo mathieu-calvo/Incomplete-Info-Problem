@@ -7,15 +7,16 @@ card game at the moment, the very famous game of poker. Specifically, we will on
 most common variant, also known as the Limit Texas Hold’em Poker game
 
 “The challenges introduced by poker are many. The game involves a number of forms of
-*uncertainty*, including stochastic dynamics from a shuffled deck, *imperfect 
-information* due to
-the opponent’s private cards, and, finally, an *unknown opponent*. These 
+**uncertainty**, including stochastic dynamics from a shuffled deck, 
+**imperfect 
+information** due to
+the opponent’s private cards, and, finally, an **unknown opponent**. These 
 uncertainties are
 individually difficult and together the difficulties only escalate. A related challenge is the
-problem of *folded hands*, which amount to partial observations of the 
+problem of **folded hands**, which amount to partial observations of the 
 opponent’s decision
-making contexts. (…). A third key challenge is the *high variance of 
-payoffs*, also known as luck.
+making contexts. (…). A third key challenge is the **high variance of 
+payoffs**, also known as luck.
 This makes it difficult for a program to even assess its performance over short periods of time.
 To aggravate this difficulty, play against human opponents is necessarily limited. If no more than
 two or three hundred hands are to be played in total, opponent modelling must be effective using
