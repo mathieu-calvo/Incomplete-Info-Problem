@@ -48,8 +48,8 @@ class Player(object):
             pot_size (int): any number
         """
         self.stack = self.stack + pot_size
-        logging.info('{} wins the pot: +{}$'
-                     .format(self.name, pot_size))
+        logging.debug('{} wins the pot: +{}$'
+                      .format(self.name, pot_size))
 
     def split_pot(self, pot_size):
         """
@@ -59,8 +59,8 @@ class Player(object):
             pot_size (int): any number
         """
         self.stack = self.stack + int(pot_size/2)
-        logging.info('{} splits the pot: +{}$'
-                     .format(self.name, int(pot_size/2)))
+        logging.debug('{} splits the pot: +{}$'
+                      .format(self.name, int(pot_size/2)))
 
     def get_back_from_pot(self, amount):
         """
@@ -72,7 +72,7 @@ class Player(object):
             amount (int): any number
         """
         self.stack = self.stack + amount
-        logging.info('{} gets +{}$ back from the pot'
+        logging.debug('{} gets +{}$ back from the pot'
                      .format(self.name, amount))
 
     def __eq__(self, other):

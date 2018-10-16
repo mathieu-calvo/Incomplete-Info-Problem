@@ -48,7 +48,7 @@ class HandPlayed(object):
             position = "Small Blind"
             private_cards = self.handSB.private_cards
 
-        return "\n***** Hand starts\n" \
+        return "\n***** Hand history\n" \
                + "User: {}\n".format(player.name) \
                + "Position: {}\n".format(position) \
                + "Stacks: {} ({}), {} ({})\n".format(self.playerBB.name,
@@ -333,10 +333,17 @@ class HandPlayed(object):
         winner = compare_two_hands(self.handBB, self.handSB)
         if winner == 'hand1':
             self.playerBB.win_pot(self.pot_size)
+            self.update_hand_histories('{} wins the pot: +{}$'
+                                       .format(self.playerBB.name,
+                                               self.pot_size))
         elif winner == 'hand2':
             self.playerSB.win_pot(self.pot_size)
+            self.update_hand_histories('{} wins the pot: +{}$'
+                                       .format(self.playerSB.name,
+                                               self.pot_size))
         else:
             self.playerBB.split_pot(self.pot_size)
             self.playerSB.split_pot(self.pot_size)
+            self.update_hand_histories("Splitting the pot")
 
         self.pot_size = 0  # reset pot size in case want to replay hand

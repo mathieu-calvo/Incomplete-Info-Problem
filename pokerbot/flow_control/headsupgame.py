@@ -85,8 +85,6 @@ class HeadsUpGame(object):
             self.hand_number += 1
             self.hero_is_big_blind = not self.hero_is_big_blind
             # TODO: potentially store evolution of stacks and perf metrics here
-            # print white line for readability
-            logging.info("")
         # TODO: display end of game metrics: winner, winnings, etc...
         if all_players_have_chips:
             logging.info("End of the game, all the hands have been played:")
