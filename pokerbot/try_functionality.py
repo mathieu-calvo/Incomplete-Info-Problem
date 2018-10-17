@@ -18,6 +18,6 @@ def run():
     player_two = RandomPlayer(starting_stack, "Hazard")
     player_three = FishPlayer(starting_stack, "Nemo")
     player_four = RandomPlayer(starting_stack, "Random")
-    hu = HeadsUpGame(max_nb_hands, big_blind, player_four, player_two)
+    hu = HeadsUpGame(max_nb_hands, big_blind, player_four, player_two, True)
     hu.start_game()
     return hu

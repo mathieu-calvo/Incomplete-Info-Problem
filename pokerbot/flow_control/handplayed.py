@@ -21,6 +21,7 @@ class HandPlayed(object):
         pot_size (int): size of the pot on that hand
         big_blind (int): initial compulsory stake
         small_blind (int): second initial compulsory stake
+        is_fixed_limit (bool): fixed limit game if True, no-limit if False
         handBB (class.Hand): hand object of player on big blind
         handSB (class.Hand): hand object of player on small blind
         flop (list): list of communal cards coming on the flop
@@ -28,6 +29,7 @@ class HandPlayed(object):
         river (list): list containing communal card coming on the river
         hand_history_BB (str): hand history object seen from BB player
         hand_history_SB (str): hand history object seen from SB player
+        hand_number (int): index to keep track of number of the hand played
     """
 
     def initialize_hand_history(self, player):
@@ -48,9 +50,15 @@ class HandPlayed(object):
             position = "Small Blind"
             private_cards = self.handSB.private_cards
 
-        return "\n***** Hand history\n" \
+        if self.is_fixed_limit:
+            game_type = 'Fixed Limit Texas Hold-em'
+        else:
+            game_type = "No Limit Texas Hold-em"
+
+        return "\n***** Hand #{} history\n".format(self.hand_nb) \
                + "User: {}\n".format(player.name) \
                + "Position: {}\n".format(position) \
+               + "Game type: {}\n".format(game_type) \
                + "Stacks: {} ({}), {} ({})\n".format(self.playerBB.name,
                                                      self.playerBB.stack,
                                                      self.playerSB.name,
@@ -65,17 +73,20 @@ class HandPlayed(object):
         self.hand_history_BB += text
         self.hand_history_SB += text
 
-    def __init__(self, player1, player2, big_blind, cards):
+    def __init__(self, player1, player2, big_blind,
+                 is_fixed_limit, cards, hand_number):
         """
         Instantiate a hand played object based on players, parameters,
         and list of 9 randomly drawn cards
         e.g. HandPlayed(HumanPlayer(100,'Joe'), HumanPlayer(100,'Mike'),
-                        10, Deck().deal_cards(9))
+                        False, 10, Deck().deal_cards(9), 3)
         """
         self.playerBB = player1
         self.playerSB = player2
-        self.pot_size = 0
         self.big_blind = big_blind
+        self.is_fixed_limit = is_fixed_limit
+        self.hand_nb = hand_number
+        self.pot_size = 0
         self.small_blind = int(big_blind / 2)
         self.handBB = Hand([cards[0], cards[1]])
         self.handSB = Hand([cards[2], cards[3]])
@@ -85,7 +96,38 @@ class HandPlayed(object):
         self.hand_history_BB = self.initialize_hand_history(self.playerBB)
         self.hand_history_SB = self.initialize_hand_history(self.playerSB)
 
-    def get_action_from_player(self, player, imbalance_size,
+    def get_possible_actions(self, player, imbalance_size,
+                             other_player_is_all_in, nb_actions):
+        """
+        Getting possible actions at any moment of the betting round, based on
+        context
+
+        Args:
+            player (class.Player): class object Player
+            imbalance_size (int): pre action imbalance size, i.e.
+            positive if one player has put more into the pot than the other
+            other_player_is_all_in (bool): explicit, to set up maximum bet
+            nb_actions (int): number of actions in betting round so far
+
+        Returns:
+            actions (list): set of str action the player can choose from
+        """
+        if imbalance_size > 0:
+            if imbalance_size >= player.stack:
+                return ['all-in', 'fold']
+            else:
+                if other_player_is_all_in:
+                    return ['call', 'fold']
+                else:
+                    if self.is_fixed_limit:
+                        # if number of actions above threshold, bet is capped
+                        if nb_actions >= 4:
+                            return ['call', 'fold']
+                    return ['call', 'raise', 'fold']
+        else:
+            return ['check', 'bet']
+
+    def get_action_from_player(self, player, actions, imbalance_size,
                                other_player_is_all_in):
         """
         Getting actions from players, method will vary depending on type of
@@ -93,6 +135,7 @@ class HandPlayed(object):
 
         Args:
             player (class.Player): class object Player
+            actions (list): set of str action the player can choose from
             imbalance_size (int): pre action imbalance size, i.e.
             positive if one player has put more into the pot than the other
             other_player_is_all_in (bool): explicit, to set up maximum bet
@@ -104,7 +147,7 @@ class HandPlayed(object):
         """
 
         # getting action from player
-        choice = player.take_action(imbalance_size, other_player_is_all_in)
+        choice = player.take_action(actions)
 
         # return meaningful parameters accordingly
         if choice == 'fold':
@@ -119,14 +162,13 @@ class HandPlayed(object):
             self.pot_size += imbalance_size
             return False, False, 0
         elif choice == 'bet':
-            if other_player_is_all_in:
-                bet_size = player.choose_amount(minimum=self.big_blind,
-                                                maximum=imbalance_size,
-                                                pot_size=self.pot_size)
+            if self.is_fixed_limit:
+                bet_size = self.big_blind
             else:
                 bet_size = player.choose_amount(minimum=self.big_blind,
                                                 maximum=player.stack,
                                                 pot_size=self.pot_size)
+            player.bet_amount(bet_size)
             self.pot_size += bet_size
             # check if player is all in
             if player.stack == 0:
@@ -141,14 +183,13 @@ class HandPlayed(object):
             # except pre-flop where the imbalance is the sb but the raise
             # needs to be at least the bb
             min_raise = imbalance_size + max(imbalance_size, self.big_blind)
-            if other_player_is_all_in:
-                raise_size = player.choose_amount(minimum=min_raise,
-                                                  maximum=imbalance_size,
-                                                  pot_size=self.pot_size)
+            if self.is_fixed_limit:
+                raise_size = min_raise
             else:
                 raise_size = player.choose_amount(minimum=min_raise,
                                                   maximum=player.stack,
                                                   pot_size=self.pot_size)
+            player.bet_amount(raise_size)
             self.pot_size += raise_size
             amount_on_top = raise_size - imbalance_size
             # check if player is all in
@@ -213,9 +254,15 @@ class HandPlayed(object):
                     logging.info("{}".format(self.hand_history_BB))
                 else:
                     logging.info("{}".format(self.hand_history_SB))
-            # get action from player and update attributes of betting round
+            # set up possible actions based on context
+            actions = self.get_possible_actions(player, imbalance_size,
+                                                someone_has_gone_all_in,
+                                                nb_actions)
+
+            # get action from player, execute action and update attributes of
+            # betting round
             has_folded, is_all_in, imbalance_size = \
-                self.get_action_from_player(player,
+                self.get_action_from_player(player, actions,
                                             imbalance_size,
                                             someone_has_gone_all_in)
             # if has folded, get out of betting round and attribute winnings

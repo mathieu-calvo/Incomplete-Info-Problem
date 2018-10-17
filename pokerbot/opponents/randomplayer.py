@@ -34,35 +34,20 @@ class RandomPlayer(Player):
     Only methods to take action and choose amount have been added
     """
 
-    def take_action(self, imbalance_size, other_player_is_all_in):
+    def take_action(self, actions):
         """
         Getting action from player by randomly selecting an option
 
         Args:
-            imbalance_size (int): pre action imbalance size, i.e.
-            positive if one player has put more into the pot than the other
-            other_player_is_all_in (bool): explicit, to set up maximum bet
+            actions (list): set of str action the player can choose from
 
         Returns:
             choice (str): the action taken
         """
         logging.debug('Action is on {}'.format(self.name))
         logging.debug('{} has a stack of {}$'.format(self.name, self.stack))
-
-        if imbalance_size > 0:
-            if imbalance_size >= self.stack:
-                actions = ['all-in', 'fold']
-            else:
-                if other_player_is_all_in:
-                    actions = ['call', 'fold']
-                else:
-                    actions = ['call', 'raise', 'fold']
-        else:
-            actions = ['check', 'bet']
-
         choice = random.choice(actions)
         logging.debug('{}\'s choice is: {}'.format(self.name, choice))
-
         return choice
 
     def choose_amount(self, minimum=None, maximum=None,

@@ -18,6 +18,7 @@ class HeadsUpGame(object):
     Attributes:
         max_nb_hands (int): maximum number of hands, game stops once reached
         big_blind (int): initial compulsory stake
+        is_fixed_limit (bool): fixed limit game if True, no-limit if False
         hero_is_big_blind (bool): randomly selected initial position
         hand_number (int): index to keep track of number of hands played
         player_hero (subclass.Player): first player, our Hero
@@ -27,15 +28,17 @@ class HeadsUpGame(object):
         our hero player
     """
 
-    def __init__(self, max_nb_hands, big_blind, player_hero, player_villain):
+    def __init__(self, max_nb_hands, big_blind,
+                 player_hero, player_villain, is_fixed_limit):
         """
         Instantiate a game object based on parameters and players' object
         e.g. HeadsUpGame(100, 10, HumanPlayer(100,"Joe"), FishPlayer(100,
-        "Mike"))
+        "Mike"), True)
         """
         # parameters of the game
         self.max_nb_hands = max_nb_hands
         self.big_blind = big_blind
+        self.is_fixed_limit = is_fixed_limit
         # initialising variables
         self.hero_is_big_blind = random.choice([True, False])
         self.hand_number = 1
@@ -54,14 +57,17 @@ class HeadsUpGame(object):
         # play while game is not over and max nb of hands not reached
         while self.hand_number <= self.max_nb_hands and all_players_have_chips:
             # start playing hands
-            logging.info('Hand #{} starts'.format(self.hand_number))
+            logging.debug('Hand #{} starts'.format(self.hand_number))
             # draw nine cards randomly from deck, 5 common + 2 per player
             drawn_cards = self.deck.deal_cards(9)
             # current position determines which player plays big blind
             if self.hero_is_big_blind:
                 current_hand = HandPlayed(self.player_hero,
                                           self.player_villain,
-                                          self.big_blind, drawn_cards)
+                                          self.big_blind,
+                                          self.is_fixed_limit,
+                                          drawn_cards,
+                                          self.hand_number)
                 # start playing the hand given current attributes
                 current_hand.play()
                 logging.debug("{}".format(current_hand.hand_history_BB))
@@ -69,7 +75,10 @@ class HeadsUpGame(object):
             else:
                 current_hand = HandPlayed(self.player_villain,
                                           self.player_hero,
-                                          self.big_blind, drawn_cards)
+                                          self.big_blind,
+                                          self.is_fixed_limit,
+                                          drawn_cards,
+                                          self.hand_number)
                 # start playing the hand given current attributes
                 current_hand.play()
                 logging.debug("{}".format(current_hand.hand_history_SB))
