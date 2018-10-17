@@ -15,7 +15,8 @@ def run():
     big_blind = 20
     max_nb_hands = 10
     player_one = HumanPlayer(starting_stack, "Sapiens")
-    player_two = RandomPlayer(starting_stack, "Lucky")
+    player_two = RandomPlayer(starting_stack, "Hazard")
     player_three = FishPlayer(starting_stack, "Nemo")
-    hu = HeadsUpGame(max_nb_hands, big_blind, player_three, player_two)
+    player_four = RandomPlayer(starting_stack, "Random")
+    hu = HeadsUpGame(max_nb_hands, big_blind, player_four, player_two)
     hu.start_game()

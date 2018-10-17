@@ -104,7 +104,7 @@ class HandPlayed(object):
         """
 
         # getting action from player
-        choice = player.take_action(imbalance_size)
+        choice = player.take_action(imbalance_size, other_player_is_all_in)
 
         # return meaningful parameters accordingly
         if choice == 'fold':
@@ -153,8 +153,14 @@ class HandPlayed(object):
             amount_on_top = raise_size - imbalance_size
             # check if player is all in
             if player.stack == 0:
-                self.update_hand_histories("{} raises {}, and is all-in\n"
-                                           .format(player.name, amount_on_top))
+                if amount_on_top > 0:
+                    self.update_hand_histories("{} raises {}, and is all-in\n"
+                                               .format(player.name,
+                                                       amount_on_top))
+                else:
+                    self.update_hand_histories("{} calls {}, and is all-in\n"
+                                               .format(player.name,
+                                                       raise_size))
                 return False, True, amount_on_top
             self.update_hand_histories("{} raises {}\n".format(player.name,
                                                                amount_on_top))
@@ -167,8 +173,12 @@ class HandPlayed(object):
             player.bet_amount(all_in_amount)
             self.pot_size += all_in_amount
             amount_on_top = all_in_amount - imbalance_size
-            self.update_hand_histories("{} bets {}, and is all-in\n"
-                                       .format(player.name, amount_on_top))
+            if amount_on_top > 0:
+                self.update_hand_histories("{} bets {}, and is all-in\n"
+                                           .format(player.name, amount_on_top))
+            else:
+                self.update_hand_histories("{} calls {}, and is all-in\n"
+                                           .format(player.name, all_in_amount))
             return False, True, amount_on_top
 
     def betting_round(self, is_pre_flop=False):
@@ -210,7 +220,11 @@ class HandPlayed(object):
                                             someone_has_gone_all_in)
             # if has folded, get out of betting round and attribute winnings
             if has_folded:
-                action_cycle.__next__().win_pot(self.pot_size)
+                player = action_cycle.__next__()
+                player.win_pot(self.pot_size)
+                self.update_hand_histories('{} wins the pot: +{}$'
+                                           .format(player.name,
+                                                   self.pot_size))
                 return True, False
             # update variables
             someone_has_gone_all_in = someone_has_gone_all_in or is_all_in
