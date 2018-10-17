@@ -29,6 +29,8 @@ class HandPlayed(object):
         river (list): list containing communal card coming on the river
         hand_history_BB (str): hand history object seen from BB player
         hand_history_SB (str): hand history object seen from SB player
+        json_hand_hist_BB (dict): hand history in json format
+        json_hand_hist_SB (dict): hand history in json format
         hand_number (int): index to keep track of number of the hand played
     """
 
@@ -40,34 +42,43 @@ class HandPlayed(object):
             player (subclass.Player): class object Player
 
         Returns:
-            hand_history (str): human readable hand history
+            str_out (str): human readable hand history
+            json_out (dict): machine readable hand history
         """
         # check what position the player is in
         if player == self.playerBB:
             position = "Big Blind"
             private_cards = self.handBB.private_cards
+            simp_rep = self.handBB.get_simp_preflop_rep()
         else:
             position = "Small Blind"
             private_cards = self.handSB.private_cards
+            simp_rep = self.handSB.get_simp_preflop_rep()
 
         if self.is_fixed_limit:
             game_type = 'Fixed Limit Texas Hold-em'
         else:
             game_type = "No Limit Texas Hold-em"
 
-        return "\n***** Hand #{} history\n".format(self.hand_nb) \
-               + "User: {}\n".format(player.name) \
-               + "Position: {}\n".format(position) \
-               + "Game type: {}\n".format(game_type) \
-               + "Stacks: {} ({}), {} ({})\n".format(self.playerBB.name,
-                                                     self.playerBB.stack,
-                                                     self.playerSB.name,
-                                                     self.playerSB.stack) \
-               + "{} posts small blind({}) {} posts big " \
-                 "blind({})\n".format(self.playerSB.name, self.small_blind,
-                                      self.playerBB.name, self.big_blind) \
-               + "***** Dealing private cards " \
-                 "to {}: {}\n".format(player.name, private_cards)
+        str_out = "\n***** Hand #{} history\n".format(self.hand_nb) \
+                  + "User: {}\n".format(player.name) \
+                  + "Position: {}\n".format(position) \
+                  + "Game type: {}\n".format(game_type) \
+                  + "Stacks: {} ({}), {} ({})\n".format(self.playerBB.name,
+                                                        self.playerBB.stack,
+                                                        self.playerSB.name,
+                                                        self.playerSB.stack) \
+                  + "{} posts small blind({}) {} posts big " \
+                    "blind({})\n".format(self.playerSB.name, self.small_blind,
+                                         self.playerBB.name, self.big_blind) \
+                  + "***** Dealing private cards " \
+                    "to {}: {}\n".format(player.name, private_cards)
+
+        json_out = {'position': {position},
+                    'preflop': {'hole_cards': private_cards,
+                                'simp_rep': simp_rep}}
+
+        return str_out, json_out
 
     def update_hand_histories(self, text):
         self.hand_history_BB += text
@@ -93,8 +104,10 @@ class HandPlayed(object):
         self.flop = [cards[4], cards[5], cards[6]]
         self.turn = [cards[7]]
         self.river = [cards[8]]
-        self.hand_history_BB = self.initialize_hand_history(self.playerBB)
-        self.hand_history_SB = self.initialize_hand_history(self.playerSB)
+        self.hand_history_BB = self.initialize_hand_history(self.playerBB)[0]
+        self.hand_history_SB = self.initialize_hand_history(self.playerSB)[0]
+        self.json_hand_hist_BB = self.initialize_hand_history(self.playerBB)[1]
+        self.json_hand_hist_SB = self.initialize_hand_history(self.playerBB)[1]
 
     def get_possible_actions(self, player, imbalance_size,
                              other_player_is_all_in, nb_actions):
@@ -128,7 +141,7 @@ class HandPlayed(object):
             return ['check', 'bet']
 
     def get_action_from_player(self, player, actions, imbalance_size,
-                               other_player_is_all_in):
+                               other_player_is_all_in, json_hand_hist):
         """
         Getting actions from players, method will vary depending on type of
         player (i.e. which class or subclass it belongs to)
@@ -139,6 +152,7 @@ class HandPlayed(object):
             imbalance_size (int): pre action imbalance size, i.e.
             positive if one player has put more into the pot than the other
             other_player_is_all_in (bool): explicit, to set up maximum bet
+            json_hand_hist (dict): hand history in json format
 
         Returns:
             has_folded (bool): let know whether someone folded
@@ -147,7 +161,7 @@ class HandPlayed(object):
         """
 
         # getting action from player
-        choice = player.take_action(actions)
+        choice = player.take_action(actions, hand_hist=json_hand_hist)
 
         # return meaningful parameters accordingly
         if choice == 'fold':
@@ -259,12 +273,20 @@ class HandPlayed(object):
                                                 someone_has_gone_all_in,
                                                 nb_actions)
 
-            # get action from player, execute action and update attributes of
-            # betting round
-            has_folded, is_all_in, imbalance_size = \
-                self.get_action_from_player(player, actions,
-                                            imbalance_size,
-                                            someone_has_gone_all_in)
+            # get action from player, using context and hand history, execute
+            # action and update attributes of betting round
+            if is_action_on_bb:
+                has_folded, is_all_in, imbalance_size = \
+                    self.get_action_from_player(player, actions,
+                                                imbalance_size,
+                                                someone_has_gone_all_in,
+                                                self.json_hand_hist_BB)
+            else:
+                has_folded, is_all_in, imbalance_size = \
+                    self.get_action_from_player(player, actions,
+                                                imbalance_size,
+                                                someone_has_gone_all_in,
+                                                self.json_hand_hist_SB)
             # if has folded, get out of betting round and attribute winnings
             if has_folded:
                 player = action_cycle.__next__()

@@ -35,20 +35,35 @@ class FixedPolicyPlayer(Player):
     Only methods to take action and choose amount have been added
     """
 
-    def take_action(self, actions):
+    def take_action(self, actions, hand_hist=None):
         """
-        Getting action from player by assessing strength of hand
+        Getting action from player by assessing strength of starting hand
 
         Args:
             actions (list): set of str action the player can choose from
+            hand_hist (dict): json format hand history, default None
 
         Returns:
             choice (str): the action taken
         """
         logging.debug('Action is on {}'.format(self.name))
         logging.debug('{} has a stack of {}$'.format(self.name, self.stack))
-        # TODO: assessing strength of hand
-        choice = random.choice(actions)
+        if hand_hist:
+            p = PRE_FLOP_WINNING_PROB[hand_hist['preflop']['simp_rep']]
+            if p < 0.5:
+                if 'check' in actions:
+                    choice = 'check'
+                else:
+                    choice = 'fold'
+            else:
+                if 'raise' in actions:
+                    choice = np.random.choice(['raise', 'call'], 1,
+                                              p=[p, 1-p])[0]
+                elif 'bet' in actions:
+                    choice = np.random.choice(['bet', 'check'], 1,
+                                              p=[p, 1-p])[0]
+                else:
+                    choice = 'all-in'
         logging.debug('{}\'s choice is: {}'.format(self.name, choice))
         return choice
 

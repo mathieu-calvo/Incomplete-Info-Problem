@@ -16,13 +16,14 @@ class FishPlayer(Player):
     Only method to take action has been added
     """
 
-    def take_action(self, actions):
+    def take_action(self, actions, hand_hist=None):
         """
         Getting action from player by always selecting the option to check
         or call
 
         Args:
             actions (list): set of str action the player can choose from
+            hand_hist (dict): json format hand history, default None
 
         Returns:
             choice (str): the action taken

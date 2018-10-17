@@ -34,12 +34,13 @@ class RandomPlayer(Player):
     Only methods to take action and choose amount have been added
     """
 
-    def take_action(self, actions):
+    def take_action(self, actions, hand_hist=None):
         """
         Getting action from player by randomly selecting an option
 
         Args:
             actions (list): set of str action the player can choose from
+            hand_hist (dict): json format hand history, default None
 
         Returns:
             choice (str): the action taken
