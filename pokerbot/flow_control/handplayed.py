@@ -379,17 +379,6 @@ class HandPlayed(object):
                                            self.handSB.human_readable_rank(),
                                            self.pot_size))
 
-        logging.debug('{}\'s best combination is {}'
-                      .format(self.playerBB.name,
-                              self.handBB.best_combination))
-        logging.debug('{}\'s best combination is {}'
-                      .format(self.playerSB.name,
-                              self.handSB.best_combination))
-        # human readable format
-        logging.debug('{} has {}'.format(self.playerBB.name,
-                                         self.handBB.human_readable_rank()))
-        logging.debug('{} has {}'.format(self.playerSB.name,
-                                         self.handSB.human_readable_rank()))
         # evaluate winner at showdown
         winner = compare_two_hands(self.handBB, self.handSB)
         if winner == 'hand1':

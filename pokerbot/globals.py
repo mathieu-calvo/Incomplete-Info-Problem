@@ -1,4 +1,5 @@
 
+import csv
 from itertools import islice
 
 # come up with a list of all the straights possible with a 52-card deck
@@ -19,3 +20,12 @@ HUMAN_READABLE_RANKINGS = {1: "High card", 2: "One pair", 3: "Two pairs",
                            4: "Three of a kind", 5: "Straight", 6: "Flush",
                            7: "Full house", 8: "Four of a kind",
                            9: "Straight flush"}
+
+# Probability that your private hand (two cards) will end up being the best
+# hand - from http://www.natesholdem.com/pre-flop-odds.php#Qx
+reader = csv.reader(open('pokerbot/pokerbot/datafiles/'
+                         'preflop_prob_best_hand_showdown.csv', 'r'))
+PRE_FLOP_WINNING_PROB = {}
+for row in reader:
+    k, v = row
+    PRE_FLOP_WINNING_PROB[k] = float(v)

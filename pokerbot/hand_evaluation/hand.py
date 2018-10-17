@@ -168,7 +168,7 @@ class Hand(object):
     def __init__(self, private_cards):
         """
         Instantiate a hand object based on private cards
-        e.g. Hand(Card(14,"C"),Card(13,"C"))
+        e.g. Hand([Card(14,"C"),Card(13,"C")])
         """
         self.private_cards = private_cards
         self.public_cards = []

@@ -12,5 +12,6 @@ from .hand_evaluation.hand import Hand, \
 from .opponents.randomplayer import RandomPlayer
 from .opponents.humanplayer import HumanPlayer
 from .opponents.fishplayer import FishPlayer
+from .opponents.fixedpolicyplayer import FixedPolicyPlayer
 
 from .try_functionality import run
