@@ -6,7 +6,8 @@ In this project, we initially aim at targeting arguably the most popular incompl
 card game at the moment, the very famous game of poker. Specifically, we will only consider its
 most common variant, also known as the Limit Texas Hold’em Poker game
 
-“The challenges introduced by poker are many. The game involves a number of forms of
+> “The challenges introduced by poker are many. The game involves a number of
+ forms of
 **uncertainty**, including stochastic dynamics from a shuffled deck, 
 **imperfect 
 information** due to
