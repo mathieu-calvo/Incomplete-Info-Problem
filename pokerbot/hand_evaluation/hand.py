@@ -233,6 +233,33 @@ class Hand(object):
         """ Converts numerical ranking of hand into human-readable version """
         return HUMAN_READABLE_RANKINGS[self.best_rank]
 
+    def get_simp_preflop_rep(self):
+        """
+        Method to give a simplified representation of private cards
+        169 possible outputs
+
+        Returns:
+            simp_preflop_hand (str): simplified representation of private cards
+
+        e.g. Hand([Card(14,"C"),Card(13,"C")]).get_simp_preflop_rep()
+        returns "AKs"
+        """
+        card1 = self.private_cards[0]
+        card2 = self.private_cards[1]
+        # pocket pairs
+        if card1.rank == card2.rank:
+            return card1.pretty_rank + card2.pretty_rank
+        elif card1.rank > card2.rank:
+            if card1.suit == card2.suit:
+                return card1.pretty_rank + card2.pretty_rank + "s"
+            else:
+                return card1.pretty_rank + card2.pretty_rank + "o"
+        else:
+            if card1.suit == card2.suit:
+                return card2.pretty_rank + card1.pretty_rank + "s"
+            else:
+                return card2.pretty_rank + card1.pretty_rank + "o"
+
     def __repr__(self):
         """ Pretty card representation of all cards in hand """
         return str([card.pretty_rank + card.pretty_suit
