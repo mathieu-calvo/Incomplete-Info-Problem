@@ -107,7 +107,7 @@ class HandPlayed(object):
         self.hand_history_BB = self.initialize_hand_history(self.playerBB)[0]
         self.hand_history_SB = self.initialize_hand_history(self.playerSB)[0]
         self.json_hand_hist_BB = self.initialize_hand_history(self.playerBB)[1]
-        self.json_hand_hist_SB = self.initialize_hand_history(self.playerBB)[1]
+        self.json_hand_hist_SB = self.initialize_hand_history(self.playerSB)[1]
 
     def get_possible_actions(self, player, imbalance_size,
                              other_player_is_all_in, nb_actions):

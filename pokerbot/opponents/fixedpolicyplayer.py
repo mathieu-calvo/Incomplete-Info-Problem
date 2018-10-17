@@ -1,5 +1,4 @@
 
-import random
 import logging
 import numpy as np
 
@@ -49,7 +48,10 @@ class FixedPolicyPlayer(Player):
         logging.debug('Action is on {}'.format(self.name))
         logging.debug('{} has a stack of {}$'.format(self.name, self.stack))
         if hand_hist:
-            p = PRE_FLOP_WINNING_PROB[hand_hist['preflop']['simp_rep']]
+            simp_pre_flop_hand = hand_hist['preflop']['simp_rep']
+            p = PRE_FLOP_WINNING_PROB[simp_preflop_hand]
+            logging.debug('{} has {}'.format(self.name, simp_pre_flop_hand))
+            logging.debug('p = {}'.format(p))
             if p < 0.5:
                 if 'check' in actions:
                     choice = 'check'
@@ -62,10 +64,12 @@ class FixedPolicyPlayer(Player):
                 elif 'bet' in actions:
                     choice = np.random.choice(['bet', 'check'], 1,
                                               p=[p, 1-p])[0]
+                elif ['call', 'fold'] == actions:
+                    choice = 'call'
                 else:
                     choice = 'all-in'
-        logging.debug('{}\'s choice is: {}'.format(self.name, choice))
-        return choice
+            logging.debug('{}\'s choice is: {}'.format(self.name, choice))
+            return choice
 
     def choose_amount(self, minimum=None, maximum=None,
                       pot_size=None, std_dev=50):

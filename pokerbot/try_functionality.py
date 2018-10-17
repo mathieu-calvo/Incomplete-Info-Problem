@@ -5,6 +5,7 @@ from .flow_control.headsupgame import HeadsUpGame
 from .opponents.humanplayer import HumanPlayer
 from .opponents.randomplayer import RandomPlayer
 from .opponents.fishplayer import FishPlayer
+from .opponents.fixedpolicyplayer import FixedPolicyPlayer
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.DEBUG)
@@ -18,6 +19,7 @@ def run():
     player_two = RandomPlayer(starting_stack, "Hazard")
     player_three = FishPlayer(starting_stack, "Nemo")
     player_four = RandomPlayer(starting_stack, "Random")
-    hu = HeadsUpGame(max_nb_hands, big_blind, player_four, player_two, True)
+    player_five = FixedPolicyPlayer(starting_stack, "Tight")
+    hu = HeadsUpGame(max_nb_hands, big_blind, player_five, player_two, True)
     hu.start_game()
     return hu
