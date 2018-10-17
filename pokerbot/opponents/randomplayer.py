@@ -87,9 +87,7 @@ class RandomPlayer(Player):
             bet_size = self.stack
         elif maximum:
             bet_size = truncated_normal(pot_size, std_dev, minimum, maximum)
-            # bet_size = random.choice(range(minimum, maximum, 1))
         else:
             bet_size = truncated_normal(pot_size, std_dev, minimum, maximum)
-            # bet_size = random.choice(range(minimum, self.stack, 1))
         self.bet_amount(bet_size)
         return bet_size

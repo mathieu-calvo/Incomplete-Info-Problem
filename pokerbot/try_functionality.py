@@ -20,3 +20,4 @@ def run():
     player_four = RandomPlayer(starting_stack, "Random")
     hu = HeadsUpGame(max_nb_hands, big_blind, player_four, player_two)
     hu.start_game()
+    return hu
