@@ -29,10 +29,9 @@ C. (2012). Bayes' bluff: Opponent modelling in poker. arXiv preprint
 arXiv:1207.1411]
 
 # Basics of Texas Hold'em poker
-[How to play the game of poker: blinds, betting rounds, showdown, etc...]
-(https://www.pokernews.com/poker-rules/texas-holdem.htm)
-[Poker hand rankings](https://poker.partypoker
-.com/en/how-to-play/hand-rankings)
+[How to play the game of poker: blinds, betting rounds, showdown, etc...](https://www.pokernews.com/poker-rules/texas-holdem.htm)
+
+[Poker hand rankings](https://poker.partypoker.com/en/how-to-play/hand-rankings)
 
 # Project scope
 In order to limit the complexity of this research project, we will proceed to a few simplifications.
