@@ -1,8 +1,25 @@
 
+import numpy as np
 import logging
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.INFO)
+
+
+def truncated_normal(mean, stddev, minval, maxval):
+    """
+    Method to draw a random number from a truncated normal distribution
+
+    Args:
+        mean (int): mean of distribution
+        stddev (float): standard deviation of distribution
+        minval (int): lower boundary
+        maxval (int): upper boundary
+
+    Returns:
+        (int): the number drawn
+    """
+    return int(np.clip(np.random.normal(mean, stddev), minval, maxval))
 
 
 class Player(object):
@@ -73,7 +90,34 @@ class Player(object):
         """
         self.stack = self.stack + amount
         logging.debug('{} gets +{}$ back from the pot'
-                     .format(self.name, amount))
+                      .format(self.name, amount))
+
+    def choose_amount(self, minimum=None, maximum=None,
+                      pot_size=None, std_dev=50):
+        """
+        Getting amount to bet from player by selecting an amount randomly
+        by drawing a number from a truncated normal distribution centered
+        around the pot size - only relevant for No Limit version of the game
+
+        Args:
+            minimum (int): minimum amount that is required, default None
+            maximum (int): maximum amount that is required, default None
+            pot_size (int): amount in pot at the moment of decision, used as
+            the mean of the distribution , default None
+            std_dev (float): standard deviation of the distribution,
+            default is set arbitrarily to 50
+
+        Returns:
+            bet_size (int): the amount to bet
+        """
+        if self.stack <= minimum:
+            bet_size = self.stack
+        elif maximum:
+            bet_size = truncated_normal(pot_size, std_dev, minimum, maximum)
+        else:
+            bet_size = truncated_normal(pot_size, std_dev, minimum, maximum)
+        self.bet_amount(bet_size)
+        return bet_size
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
