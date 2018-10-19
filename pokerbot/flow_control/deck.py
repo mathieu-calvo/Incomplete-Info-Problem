@@ -44,3 +44,15 @@ class Deck(object):
             .format(number_cards)
         # use the random library to sample from deck
         return random.sample(self.cards, number_cards)
+
+    def get_remaining_cards(self, list_of_cards):
+        """
+        Returns possible remaining cards in deck based on list of visible one
+
+        Args:
+            list_of_cards (list): list of Card objects
+
+        Returns:
+            list: list containing remaining cards, as Card objects
+        """
+        return [card for card in self.cards if card not in list_of_cards]
