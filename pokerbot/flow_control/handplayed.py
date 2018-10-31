@@ -76,7 +76,8 @@ class HandPlayed(object):
 
         json_out = {'position': {position},
                     'preflop': {'hole_cards': private_cards,
-                                'simp_rep': simp_rep}}
+                                'simp_rep': simp_rep},
+                    'community_cards': []}
 
         return str_out, json_out
 
@@ -90,7 +91,7 @@ class HandPlayed(object):
         Instantiate a hand played object based on players, parameters,
         and list of 9 randomly drawn cards
         e.g. HandPlayed(HumanPlayer(100,'Joe'), HumanPlayer(100,'Mike'),
-                        False, 10, Deck().deal_cards(9), 3)
+                        10, False, Deck().deal_cards(9), 3)
         """
         self.playerBB = player1
         self.playerSB = player2
@@ -236,19 +237,20 @@ class HandPlayed(object):
                                            .format(player.name, all_in_amount))
             return False, True, amount_on_top
 
-    def betting_round(self, is_pre_flop=False):
+    def betting_round(self, stage='pre-flop'):
         """
         Flow control of each betting round during the hand.
 
         Keyword arguments:
-            is_pre_flop (bool): flag for post/pre flop (default False)
+            stage (str): stage the betting round is for (default 'pre-flop')
+            possible entries are 'pre-flop', 'flop', 'turn', 'river'
 
         Returns:
             someone_has_folded (bool): flag to pass on whether someone folds
             someone_is_all_in (bool): flag to pass on whether someone is
             all in
         """
-        if is_pre_flop:
+        if stage == 'pre-flop':
             imbalance_size = self.big_blind - self.small_blind
             action_cycle = cycle([self.playerSB, self.playerBB])
             is_action_on_bb_cycle = cycle([False, True])
@@ -336,12 +338,14 @@ class HandPlayed(object):
 
         # first betting round, pre-flop
         someone_has_folded, someone_is_all_in = \
-            self.betting_round(is_pre_flop=True)
+            self.betting_round(stage='pre-flop')
         if someone_has_folded:
             self.pot_size = 0  # reset pot size in case want to replay hand
             return None
 
         logging.debug('Flop comes {}'.format(self.flop))
+        self.json_hand_hist_BB['community_cards'] += self.flop
+        self.json_hand_hist_SB['community_cards'] += self.flop
         self.update_hand_histories("***** Dealing flop: {}\n"
                                    .format(self.flop))
         # integrate info
@@ -350,12 +354,14 @@ class HandPlayed(object):
         # second betting round, post flop
         if not someone_is_all_in:
             someone_has_folded, someone_is_all_in = \
-                self.betting_round(is_pre_flop=False)
+                self.betting_round(stage='flop')
             if someone_has_folded:
                 self.pot_size = 0  # reset pot size in case want to replay hand
                 return None
 
         logging.debug('Turn comes {}'.format(self.turn))
+        self.json_hand_hist_BB['community_cards'] += self.turn
+        self.json_hand_hist_SB['community_cards'] += self.turn
         self.update_hand_histories("***** Dealing turn: {} - {}\n"
                                    .format(self.flop, self.turn))
         # integrate info
@@ -364,12 +370,14 @@ class HandPlayed(object):
         # Third betting round, post turn
         if not someone_is_all_in:
             someone_has_folded, someone_is_all_in = \
-                self.betting_round(is_pre_flop=False)
+                self.betting_round(stage='turn')
             if someone_has_folded:
                 self.pot_size = 0  # reset pot size in case want to replay hand
                 return None
 
         logging.debug('River comes {}'.format(self.river))
+        self.json_hand_hist_BB['community_cards'] += self.river
+        self.json_hand_hist_SB['community_cards'] += self.river
         self.update_hand_histories("***** Dealing river: {} - {} - {}\n"
                                    .format(self.flop, self.turn, self.river))
         # integrate info
@@ -378,7 +386,7 @@ class HandPlayed(object):
         # Fourth and last betting round, post river
         if not someone_is_all_in:
             someone_has_folded, someone_is_all_in = \
-                self.betting_round(is_pre_flop=False)
+                self.betting_round(stage='river')
             if someone_has_folded:
                 self.pot_size = 0  # reset pot size in case want to replay hand
                 return None

@@ -82,25 +82,40 @@ class StrengthHandPlayer(Player):
         logging.debug('Action is on {}'.format(self.name))
         logging.debug('{} has a stack of {}$'.format(self.name, self.stack))
         if hand_hist:
+            # get relevant info from hand history
             simp_pre_flop_hand = hand_hist['preflop']['simp_rep']
-            p = estimate_win_rate(nb_simulations,
-                                  hole_cards,
-                                  community_cards=None)
-            p = PRE_FLOP_WINNING_PROB[simp_pre_flop_hand]
+            hole_cards = hand_hist['preflop']['hole_cards']
+            community_cards = hand_hist['community_cards']
+            nb_simulations = 1000
+            # if stage is pre-flop, agent rely on lookup table for win rate
+            if community_cards:
+                p = estimate_win_rate(nb_simulations,
+                                      hole_cards,
+                                      community_cards=community_cards)
+            else:
+                p = PRE_FLOP_WINNING_PROB[simp_pre_flop_hand]
             logging.debug('{} has {}'.format(self.name, simp_pre_flop_hand))
             logging.debug('p = {}'.format(p))
+            # select actions based on win rate
             if p < 0.5:
                 if 'check' in actions:
                     choice = 'check'
                 else:
                     choice = 'fold'
+            elif p < 0.8:
+                if 'call' in actions:
+                    choice = 'call'
+                elif 'bet' in actions:
+                    choice = 'bet'
+                elif ['call', 'fold'] == actions:
+                    choice = 'call'
+                else:
+                    choice = 'all-in'
             else:
                 if 'raise' in actions:
-                    choice = np.random.choice(['raise', 'call'], 1,
-                                              p=[p, 1 - p])[0]
+                    choice = 'raise'
                 elif 'bet' in actions:
-                    choice = np.random.choice(['bet', 'check'], 1,
-                                              p=[p, 1 - p])[0]
+                    choice = 'bet'
                 elif ['call', 'fold'] == actions:
                     choice = 'call'
                 else:
