@@ -36,7 +36,7 @@ class HandPlayed(object):
         hand_number (int): index to keep track of number of the hand played
     """
 
-    def initialize_hand_history(self, player):
+    def _initialize_hand_history(self, player):
         """
         Initialize hand history for a given player
 
@@ -50,10 +50,14 @@ class HandPlayed(object):
         """
         # check what position the player is in
         if player == self.playerBB:
+            stack = self.playerBB.stack
+            opponent_stack = self.playerSB.stack
             position = "Big Blind"
             private_cards = self.handBB.private_cards
             simp_rep = self.handBB.get_simp_preflop_rep()
         else:
+            stack = self.playerSB.stack
+            opponent_stack = self.playerBB.stack
             position = "Small Blind"
             private_cards = self.handSB.private_cards
             simp_rep = self.handSB.get_simp_preflop_rep()
@@ -82,7 +86,10 @@ class HandPlayed(object):
                                 'simp_rep': simp_rep},
                     'community_cards': []}
 
+        # STACKS - POSITION - CARDS, private + common - ACTION seq., 4 streets
         state_out = [
+            stack,
+            opponent_stack,
             0 if position == 'Small Blind' else 1,
             private_cards[0].numerical_id,
             private_cards[1].numerical_id,
@@ -91,7 +98,10 @@ class HandPlayed(object):
             0,
             0,
             0,
-        ]
+            0,
+            0,
+            0,
+            0]
 
         return str_out, json_out, state_out
 
@@ -119,10 +129,10 @@ class HandPlayed(object):
         self.flop = [cards[4], cards[5], cards[6]]
         self.turn = [cards[7]]
         self.river = [cards[8]]
-        self.hand_history_BB = self.initialize_hand_history(self.playerBB)[0]
-        self.hand_history_SB = self.initialize_hand_history(self.playerSB)[0]
-        self.json_hand_hist_BB = self.initialize_hand_history(self.playerBB)[1]
-        self.json_hand_hist_SB = self.initialize_hand_history(self.playerSB)[1]
+        self.hand_history_BB, self.json_hand_hist_BB, self.state_BB = \
+            self._initialize_hand_history(self.playerBB)
+        self.hand_history_SB, self.json_hand_hist_SB, self.state_SB = \
+            self._initialize_hand_history(self.playerSB)
 
     def get_possible_actions(self, player, imbalance_size,
                              other_player_is_all_in, nb_actions):
