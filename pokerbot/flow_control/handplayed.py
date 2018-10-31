@@ -31,6 +31,8 @@ class HandPlayed(object):
         hand_history_SB (str): hand history object seen from SB player
         json_hand_hist_BB (dict): hand history in json format
         json_hand_hist_SB (dict): hand history in json format
+        state_SB (array): state of the environment as seen from SB player
+        state_BB (array): state of the environment as seen from BB player
         hand_number (int): index to keep track of number of the hand played
     """
 
@@ -44,6 +46,7 @@ class HandPlayed(object):
         Returns:
             str_out (str): human readable hand history
             json_out (dict): machine readable hand history
+            state_out (array): state of the environment in numerical format
         """
         # check what position the player is in
         if player == self.playerBB:
@@ -79,7 +82,18 @@ class HandPlayed(object):
                                 'simp_rep': simp_rep},
                     'community_cards': []}
 
-        return str_out, json_out
+        state_out = [
+            0 if position == 'Small Blind' else 1,
+            private_cards[0].numerical_id,
+            private_cards[1].numerical_id,
+            0,
+            0,
+            0,
+            0,
+            0,
+        ]
+
+        return str_out, json_out, state_out
 
     def update_hand_histories(self, text):
         self.hand_history_BB += text

@@ -1,7 +1,8 @@
 
 import logging
 
-from ..globals import FACE_CARDS_RANK_DICT, PRETTY_SUIT_DICT
+from ..globals import FACE_CARDS_RANK_DICT, \
+    PRETTY_SUIT_DICT, NUMERICAL_SUIT_DICT
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.INFO)
@@ -54,6 +55,7 @@ class Card(object):
         suit (str): suit of the card, possible entries: C,D,H,S
         pretty_rank (str): rank in prettified str format for face cards
         pretty_suit (str): suit in prettified symbol
+        numerical_id (int): unique numerical id for the card, [1-52]
     """
 
     def __init__(self, numeric_rank, suit):
@@ -65,6 +67,7 @@ class Card(object):
         self.suit = suit
         self.pretty_rank = prettify_rank(self.rank)
         self.pretty_suit = prettify_suit(self.suit)
+        self.numerical_id = self.rank * NUMERICAL_SUIT_DICT[self.suit]
 
     def __str__(self):
         return str(self.rank) + self.suit

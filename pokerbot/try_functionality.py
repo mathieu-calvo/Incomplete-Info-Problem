@@ -22,6 +22,6 @@ def run():
     player_four = RandomPlayer(starting_stack, "Random")
     player_five = StartingHandPlayer(starting_stack, "Tight")
     player_six = StrengthHandPlayer(starting_stack, "Carlo")
-    hu = HeadsUpGame(max_nb_hands, big_blind, player_six, player_five, True)
+    hu = HeadsUpGame(max_nb_hands, big_blind, player_six, player_three, True)
     hu.start_game()
     return hu

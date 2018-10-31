@@ -15,6 +15,9 @@ FACE_CARDS_RANK_DICT = {14: 'A', 11: 'J', 12: 'Q', 13: 'K'}
 PRETTY_SUIT_DICT = {'C': '\u2667', 'D': '\u2662',
                     'H': '\u2661', 'S': '\u2664'}
 
+# numerical value for suits in order to come up with unique numerical id
+NUMERICAL_SUIT_DICT = {'C': 1, 'D': 2, 'H': 3, 'S': 4}
+
 # human readable rankings
 HUMAN_READABLE_RANKINGS = {1: "High card", 2: "One pair", 3: "Two pairs",
                            4: "Three of a kind", 5: "Straight", 6: "Flush",
