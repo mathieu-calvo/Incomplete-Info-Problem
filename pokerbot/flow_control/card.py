@@ -67,7 +67,8 @@ class Card(object):
         self.suit = suit
         self.pretty_rank = prettify_rank(self.rank)
         self.pretty_suit = prettify_suit(self.suit)
-        self.numerical_id = self.rank * NUMERICAL_SUIT_DICT[self.suit]
+        self.numerical_id = 4 * (self.rank - 2) + NUMERICAL_SUIT_DICT[
+            self.suit]
 
     def __str__(self):
         return str(self.rank) + self.suit

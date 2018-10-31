@@ -15,7 +15,7 @@ FACE_CARDS_RANK_DICT = {14: 'A', 11: 'J', 12: 'Q', 13: 'K'}
 PRETTY_SUIT_DICT = {'C': '\u2667', 'D': '\u2662',
                     'H': '\u2661', 'S': '\u2664'}
 
-# numerical value for suits in order to come up with unique numerical id
+# numerical value for suits
 NUMERICAL_SUIT_DICT = {'C': 1, 'D': 2, 'H': 3, 'S': 4}
 
 # human readable rankings
@@ -32,3 +32,4 @@ PRE_FLOP_WINNING_PROB = {}
 for row in reader:
     k, v = row
     PRE_FLOP_WINNING_PROB[k] = float(v)
+
