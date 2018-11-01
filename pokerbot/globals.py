@@ -33,3 +33,31 @@ for row in reader:
     k, v = row
     PRE_FLOP_WINNING_PROB[k] = float(v)
 
+# sequence of actions Id
+SEQUENCE_ACTIONS_ID = {
+    "": 0,
+    "F": 1,
+    "B": 2,
+    "C": 3,
+    "BC": 4,
+    "CC": 5,
+    "BF": 6,
+    "BB": 7,
+    "CB": 8,
+    "BBF": 9,
+    "BBC": 10,
+    "CBF": 11,
+    "CBC": 12,
+    "BBB": 13,
+    "CBB": 14,
+    "BBBF": 15,
+    "BBBC": 16,
+    "CBBF": 17,
+    "CBBC": 18,
+    "BBBB": 19,
+    "CBBB": 20,
+    "BBBBF": 21,
+    "BBBBC": 22,
+    "CBBBF": 23,
+    "CBBBC": 24,
+}

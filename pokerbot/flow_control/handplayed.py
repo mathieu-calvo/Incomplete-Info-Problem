@@ -4,6 +4,7 @@ from itertools import cycle
 
 from ..hand_evaluation.hand import Hand, compare_two_hands
 from ..opponents.humanplayer import HumanPlayer
+from ..globals import SEQUENCE_ACTIONS_ID
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.DEBUG)
@@ -86,7 +87,7 @@ class HandPlayed(object):
                                 'simp_rep': simp_rep},
                     'community_cards': []}
 
-        # STACKS - POSITION - CARDS, private + common - ACTION seq., 4 streets
+        # STACKS - POSITION - CARDS, private&common - ACTION seq.- POT SIZE
         state_out = [
             stack,
             opponent_stack,
@@ -101,7 +102,8 @@ class HandPlayed(object):
             0,
             0,
             0,
-            0]
+            0,
+            self.pot_size]
 
         return str_out, json_out, state_out
 
@@ -114,8 +116,8 @@ class HandPlayed(object):
         """
         Instantiate a hand played object based on players, parameters,
         and list of 9 randomly drawn cards
-        e.g. HandPlayed(HumanPlayer(100,'Joe'), HumanPlayer(100,'Mike'),
-                        10, False, Deck().deal_cards(9), 3)
+        e.g. HandPlayed(RandomPlayer(100,'Joe'), RandomPlayer(100,'Mike'),
+                        10, True, Deck().deal_cards(9), 3)
         """
         self.playerBB = player1
         self.playerSB = player2
@@ -183,6 +185,7 @@ class HandPlayed(object):
             has_folded (bool): let know whether someone folded
             is_all_in (bool): let know whether someone is all in
             imbalance_size (int): post action imbalance size
+            choice (str): choice player took
         """
 
         # getting action from player
@@ -191,15 +194,15 @@ class HandPlayed(object):
         # return meaningful parameters accordingly
         if choice == 'fold':
             self.update_hand_histories("{} folds\n".format(player.name))
-            return True, False, imbalance_size
+            return True, False, imbalance_size, choice
         elif choice == 'check':
             self.update_hand_histories("{} checks\n".format(player.name))
-            return False, False, 0
+            return False, False, 0, choice
         elif choice == 'call':
             self.update_hand_histories("{} calls\n".format(player.name))
             player.bet_amount(imbalance_size)
             self.pot_size += imbalance_size
-            return False, False, 0
+            return False, False, 0, choice
         elif choice == 'bet':
             if self.is_fixed_limit:
                 bet_size = self.big_blind
@@ -213,10 +216,10 @@ class HandPlayed(object):
             if player.stack == 0:
                 self.update_hand_histories("{} bets {}, and is all-in\n"
                                            .format(player.name, bet_size))
-                return False, True, bet_size
+                return False, True, bet_size, choice
             self.update_hand_histories("{} bets {}\n".format(player.name,
                                                              bet_size))
-            return False, False, bet_size
+            return False, False, bet_size, choice
         elif choice == 'raise':
             # minimum raise is calling the imbalance and doubling it
             # except pre-flop where the imbalance is the sb but the raise
@@ -241,10 +244,10 @@ class HandPlayed(object):
                     self.update_hand_histories("{} calls {}, and is all-in\n"
                                                .format(player.name,
                                                        raise_size))
-                return False, True, amount_on_top
+                return False, True, amount_on_top, choice
             self.update_hand_histories("{} raises {}\n".format(player.name,
                                                                amount_on_top))
-            return False, False, amount_on_top
+            return False, False, amount_on_top, choice
         elif choice == 'all-in':
             if other_player_is_all_in:
                 all_in_amount = min(player.stack, imbalance_size)
@@ -259,7 +262,7 @@ class HandPlayed(object):
             else:
                 self.update_hand_histories("{} calls {}, and is all-in\n"
                                            .format(player.name, all_in_amount))
-            return False, True, amount_on_top
+            return False, True, amount_on_top, choice
 
     def betting_round(self, stage='pre-flop'):
         """
@@ -282,18 +285,24 @@ class HandPlayed(object):
             imbalance_size = 0
             action_cycle = cycle([self.playerBB, self.playerSB])
             is_action_on_bb_cycle = cycle([True, False])
+
         # initiate variables
         nb_actions = 0
         player = action_cycle.__next__()
         is_action_on_bb = is_action_on_bb_cycle.__next__()
         someone_has_gone_all_in = False
+        action_trail = ""
+
+        # start the round
         while (nb_actions < 2) or (nb_actions >= 2 and imbalance_size > 0):
+
             # show information if user is human
             if isinstance(player, HumanPlayer):
                 if is_action_on_bb:
                     logging.info("{}".format(self.hand_history_BB))
                 else:
                     logging.info("{}".format(self.hand_history_SB))
+
             # set up possible actions based on context
             actions = self.get_possible_actions(player, imbalance_size,
                                                 someone_has_gone_all_in,
@@ -302,17 +311,47 @@ class HandPlayed(object):
             # get action from player, using context and hand history, execute
             # action and update attributes of betting round
             if is_action_on_bb:
-                has_folded, is_all_in, imbalance_size = \
-                    self.get_action_from_player(player, actions,
-                                                imbalance_size,
-                                                someone_has_gone_all_in,
-                                                self.json_hand_hist_BB)
+                json_hand_hist = self.json_hand_hist_BB
             else:
-                has_folded, is_all_in, imbalance_size = \
-                    self.get_action_from_player(player, actions,
-                                                imbalance_size,
-                                                someone_has_gone_all_in,
-                                                self.json_hand_hist_SB)
+                json_hand_hist = self.json_hand_hist_SB
+
+            has_folded, is_all_in, imbalance_size, choice = \
+                self.get_action_from_player(player, actions,
+                                            imbalance_size,
+                                            someone_has_gone_all_in,
+                                            json_hand_hist)
+
+            # update action trail with choice of player
+            if choice in ['call', 'check', 'all-in']:
+                action_trail += 'C'
+            elif choice in ['bet', 'raise']:
+                action_trail += 'B'
+            elif choice == 'fold':
+                action_trail += 'F'
+
+            # update state before getting action from player
+            # update stacks
+            self.state_BB[0] = self.playerBB.stack
+            self.state_BB[1] = self.playerSB.stack
+            self.state_SB[0] = self.playerSB.stack
+            self.state_SB[1] = self.playerBB.stack
+            self.state_BB[-1] = self.pot_size
+            self.state_SB[-1] = self.pot_size
+
+            # need to update action trail for the stage
+            if stage == 'pre-flop':
+                self.state_BB[-5] = SEQUENCE_ACTIONS_ID[action_trail]
+                self.state_SB[-5] = SEQUENCE_ACTIONS_ID[action_trail]
+            elif stage == 'flop':
+                self.state_BB[-4] = SEQUENCE_ACTIONS_ID[action_trail]
+                self.state_SB[-4] = SEQUENCE_ACTIONS_ID[action_trail]
+            elif stage == 'turn':
+                self.state_BB[-3] = SEQUENCE_ACTIONS_ID[action_trail]
+                self.state_SB[-3] = SEQUENCE_ACTIONS_ID[action_trail]
+            elif stage == 'river':
+                self.state_BB[-2] = SEQUENCE_ACTIONS_ID[action_trail]
+                self.state_SB[-2] = SEQUENCE_ACTIONS_ID[action_trail]
+
             # if has folded, get out of betting round and attribute winnings
             if has_folded:
                 player = action_cycle.__next__()
@@ -321,11 +360,13 @@ class HandPlayed(object):
                                            .format(player.name,
                                                    self.pot_size))
                 return True, False
+
             # update variables
             someone_has_gone_all_in = someone_has_gone_all_in or is_all_in
             nb_actions += 1
             player = action_cycle.__next__()
             is_action_on_bb = is_action_on_bb_cycle.__next__()
+
         if someone_has_gone_all_in:
             # if someone has gone all-in, there may be an imbalance left and
             # the first player to have moved may have had more chips,
@@ -372,6 +413,13 @@ class HandPlayed(object):
         self.json_hand_hist_SB['community_cards'] += self.flop
         self.update_hand_histories("***** Dealing flop: {}\n"
                                    .format(self.flop))
+        # for lack of a better idea for now...
+        self.state_BB[5] = self.flop[0].numerical_id
+        self.state_BB[6] = self.flop[1].numerical_id
+        self.state_BB[7] = self.flop[2].numerical_id
+        self.state_SB[5] = self.flop[0].numerical_id
+        self.state_SB[6] = self.flop[1].numerical_id
+        self.state_SB[7] = self.flop[2].numerical_id
         # integrate info
         self.handBB.add_public_cards(self.flop)
         self.handSB.add_public_cards(self.flop)
@@ -388,6 +436,9 @@ class HandPlayed(object):
         self.json_hand_hist_SB['community_cards'] += self.turn
         self.update_hand_histories("***** Dealing turn: {} - {}\n"
                                    .format(self.flop, self.turn))
+        # for lack of a better idea for now...
+        self.state_SB[8] = self.turn[0].numerical_id
+        self.state_BB[8] = self.turn[0].numerical_id
         # integrate info
         self.handBB.add_public_cards(self.turn)
         self.handSB.add_public_cards(self.turn)
@@ -404,6 +455,9 @@ class HandPlayed(object):
         self.json_hand_hist_SB['community_cards'] += self.river
         self.update_hand_histories("***** Dealing river: {} - {} - {}\n"
                                    .format(self.flop, self.turn, self.river))
+        # for lack of a better idea for now...
+        self.state_SB[9] = self.river[0].numerical_id
+        self.state_BB[9] = self.river[0].numerical_id
         # integrate info
         self.handBB.add_public_cards(self.river)
         self.handSB.add_public_cards(self.river)
