@@ -27,8 +27,8 @@ class DQNAgent(Player):
         self.initial_stack = stack
         self.stack = stack
         self.name = name
-        self.state_size = 50
-        self.action_size = 3
+        self.state_size = 15  # dimension of row vector representing the env
+        self.action_size = 3  # CALL (CHECK) - BET (RAISE) - FOLD
         self.memory = deque(maxlen=2000)
         self.gamma = 0.95    # discount rate
         self.epsilon = 1.0  # exploration rate
@@ -57,8 +57,8 @@ class DQNAgent(Player):
         return np.argmax(act_values[0])  # returns action
 
     def replay(self, batch_size):
-        minibatch = random.sample(self.memory, batch_size)
-        for state, action, reward, next_state, done in minibatch:
+        mini_batch = random.sample(self.memory, batch_size)
+        for state, action, reward, next_state, done in mini_batch:
             target = reward
             if not done:
                 target = (reward + self.gamma *

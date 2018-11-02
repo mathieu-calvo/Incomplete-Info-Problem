@@ -536,6 +536,8 @@ class HdPlayed(object):
         # make sure action is valid
         assert(action in self.possible_actions)
 
+        # TODO: what if both all-in, need to run through showdown
+
         # enforce action from agent
         self._enforce_action(action)
 

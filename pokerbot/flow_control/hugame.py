@@ -111,15 +111,23 @@ class HuGame(object):
             next_state (array): numerical representation of environment
             reward (int): numerical reward
             game_over (bool): indicating if game is over
+            hand_done (bool): indicating if hand is done
             info (object): hand histories for debugging purposes
         """
         next_state, reward, hand_done, info = self.current_hand.step(action)
         if hand_done:
             # check if game is over
             self.game_over = self._is_game_over()
-        return next_state, reward, self.game_over, info
+        return next_state, reward, self.game_over, hand_done, info
 
     def initial_step(self):
+        """
+        Method to take the initial step into the game for the agent
+        Deals a hand
+
+        Returns:
+            state (array): numerical representation of environment
+        """
         # deal new hand
         self.current_hand = self._deal_hand()
         # get initial state from it
