@@ -83,6 +83,7 @@ if __name__ == "__main__":
         state = env.reset()
         state = np.reshape(state, [1, state_size])  # to row vector
 
+        # limit number of action that can be taken
         for time in range(500):
 
             # # visualize environment

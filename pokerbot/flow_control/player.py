@@ -28,7 +28,8 @@ class Player(object):
     Takes action and decide about amount to be bet by prompting user
 
     Attributes:
-        stack (int): amount the chips he owns at any given time
+        initial_stack (int): amount of chips he started with
+        stack (int): amount of chips he owns at any given time
         name (str): name of the player
     """
 
@@ -37,8 +38,17 @@ class Player(object):
         Instantiating the object using a numeric stack and a name
         e.g. Player(100,"Joe")
         """
+        self.initial_stack = stack
         self.stack = stack
         self.name = name
+
+    def reset_stack(self):
+        """
+        Reset stack to initial amount
+        """
+        logging.debug('{} resets its stack from {}$ to {}$'
+                      .format(self.name, self.stack, self.initial_stack))
+        self.stack = self.initial_stack
 
     def bet_amount(self, bet_size):
         """

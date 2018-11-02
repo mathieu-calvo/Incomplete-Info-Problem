@@ -4,7 +4,9 @@ from .flow_control.card import Card
 from .flow_control.deck import Deck
 from .flow_control.player import Player
 from .flow_control.handplayed import HandPlayed
+from .flow_control.hdplayed import HdPlayed
 from .flow_control.headsupgame import HeadsUpGame
+from .flow_control.hugame import HuGame
 
 from .hand_evaluation.hand import Hand, \
     compare_two_hands, tie_breaking, evaluate_hand_ranking
@@ -16,5 +18,7 @@ from .opponents.humanplayer import HumanPlayer
 from .opponents.fishplayer import FishPlayer
 from .opponents.fixedpolicyplayer import StartingHandPlayer, \
     StrengthHandPlayer
+
+from .agent.dqnagent import DQNAgent
 
 from .try_functionality import run
