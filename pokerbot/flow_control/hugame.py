@@ -93,7 +93,7 @@ class HuGame(object):
         Method to re-initialise attributes
         """
         self.hero_is_big_blind = random.choice([True, False])
-        self.hand_number = 1
+        self.hand_number = 0
         self.player_hero.reset_stack()
         self.player_villain.reset_stack()
         self.game_over = False
@@ -116,6 +116,8 @@ class HuGame(object):
         """
         next_state, reward, hand_done, info = self.current_hand.step(action)
         if hand_done:
+            # adding hand history
+            self.hero_game_history.append(info)
             # check if game is over
             self.game_over = self._is_game_over()
         return next_state, reward, self.game_over, hand_done, info
@@ -132,8 +134,8 @@ class HuGame(object):
         # deal new hand
         self.current_hand = self._deal_hand()
         # get initial state from it
-        state, hand_over = self.current_hand.initial_step()
-        return state, hand_over
-
-
-
+        state, hand_done, info = self.current_hand.initial_step()
+        if hand_done:
+            # adding hand history
+            self.hero_game_history.append(info)
+        return state, hand_done

@@ -17,7 +17,7 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.DEBUG)
 
 
-def run():
+def run(nb_episodes=15):
 
     # parameters of environment
     starting_stack = 100
@@ -25,7 +25,6 @@ def run():
     max_nb_hands = 10
     is_fixed_limit = True
     batch_size = 32
-    nb_episodes = 5
 
     # create agent
     agent = DQNAgent(starting_stack, "Q-Lee")
@@ -41,8 +40,17 @@ def run():
     # create the environment
     env = HuGame(max_nb_hands, big_blind, agent, player_five, is_fixed_limit)
 
+    # total reward for episode
+    total_reward = 0
+
     # training
     for e in range(nb_episodes):
+
+        # catching bugs
+        if agent.stack + player_five.stack != 2 * starting_stack:
+            break
+        if total_reward > starting_stack:
+            break
 
         # reset environment
         env.reset()
@@ -99,6 +107,15 @@ def run():
             # add sequence to memory
             agent.remember(state, action, reward, next_state, hand_over)
 
+            # if done print relevant metrics and exit episode
+            if game_done:
+                total_reward = env.player_hero.stack - starting_stack
+                print("episode: {}/{}, nb_hands: {}, e: {:.2}, reward: {}"
+                      .format(e + 1, nb_episodes,
+                              env.hand_number, agent.epsilon,
+                              total_reward))
+                break
+
             # reinitialize variables
             # if hand is over, need to do initial step again
             if hand_over:
@@ -111,16 +128,10 @@ def run():
             else:
                 state = next_state
 
-            # if done print relevant metrics and exit episode
-            if game_done:
-                print("episode: {}/{}, score: {}, e: {:.2}"
-                      .format(e + 1, nb_episodes, 0, agent.epsilon))
-                break
-
             # if memory is big enough, replay a batch of examples
             # and learn from them
             # this piece is also responsible for the decay in epsilon
             if len(agent.memory) > batch_size:
                 agent.replay(batch_size)
 
-    return agent
+    return agent, env

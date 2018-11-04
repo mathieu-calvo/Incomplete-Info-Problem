@@ -122,9 +122,38 @@ class HdPlayed(object):
         if self.stage == "pre-flop":
             # blinds
             logging.debug('{} is Big Blind'.format(self.playerBB.name))
-            self.playerBB.bet_amount(self.big_blind)
-            self.playerSB.bet_amount(self.small_blind)
-            self.pot_size += self.big_blind + self.small_blind
+            # check if one of the players is all in under the blind
+            if self.playerSB.stack <= self.small_blind:
+                self.someone_is_all_in = True
+                all_in_under_sb = self.playerSB.stack
+                self.playerSB.bet_amount(all_in_under_sb)
+                # in the heads-up case, BB has necessarily more
+                self.playerBB.bet_amount(all_in_under_sb)
+                self.playerSB.bet_amount(all_in_under_sb)
+                self.pot_size += all_in_under_sb * 2
+                self.imbalance_size = 0
+            if self.playerBB.stack <= self.big_blind:
+                self.someone_is_all_in = True
+                all_in_under_bb = self.playerBB.stack
+                self.playerBB.bet_amount(all_in_under_bb)
+                # in the heads-up case, SB has necessarily more
+                # but SB could still have a choice to make
+                if all_in_under_bb <= self.small_blind:
+                    self.playerBB.bet_amount(all_in_under_bb)
+                    self.playerSB.bet_amount(all_in_under_bb)
+                    self.pot_size += all_in_under_bb * 2
+                    self.imbalance_size = 0
+                else:
+                    self.playerBB.bet_amount(all_in_under_bb)
+                    self.playerSB.bet_amount(self.small_blind)
+                    self.pot_size += self.small_blind + all_in_under_bb
+                    self.imbalance_size = all_in_under_bb - self.small_blind
+            # normal case - everyone can afford the initial stakes
+            if not self.someone_is_all_in:
+                self.playerBB.bet_amount(self.big_blind)
+                self.playerSB.bet_amount(self.small_blind)
+                self.pot_size += self.big_blind + self.small_blind
+                self.imbalance_size = self.big_blind - self.small_blind
             # log players' private cards
             logging.debug('{} has {}'.format(self.playerBB.name,
                                              self.handBB.private_cards))
@@ -329,33 +358,36 @@ class HdPlayed(object):
         elif action == 'bet':
             if self.is_fixed_limit:
                 if self.stage in ['turn', 'river']:
-                    bet_size = self.big_blind * 2
+                    bet_size = min(self.big_blind * 2,
+                                   self.active_player.stack)
                 else:
-                    bet_size = self.big_blind
+                    bet_size = min(self.big_blind, self.active_player.stack)
             else:
                 bet_size = self.active_player.choose_amount(
                     minimum=self.big_blind,
                     maximum=self.active_player.stack,
                     pot_size=self.pot_size)
-                self.active_player.bet_amount(bet_size)
+            self.active_player.bet_amount(bet_size)
             self.pot_size += bet_size
             if self.active_player.stack == 0:  # check if player is all in
                 self.update_hand_histories("{} bets {}, and is all-in\n"
                                            .format(self.active_player.name,
                                                    bet_size))
                 self.someone_is_all_in = True
-
-            self.update_hand_histories("{} bets {}\n"
-                                       .format(self.active_player.name,
-                                               bet_size))
+            else:
+                self.update_hand_histories("{} bets {}\n"
+                                           .format(self.active_player.name,
+                                                   bet_size))
             self.imbalance_size = bet_size
 
         elif action == 'raise':
             # minimum raise is calling the imbalance and doubling it
             # except pre-flop where the imbalance is the sb but the raise
-            # needs to be at least the bb
-            min_raise = self.imbalance_size + max(self.imbalance_size,
-                                                  self.big_blind)
+            # needs to be at least the bb - or if all in
+            min_raise = self.imbalance_size + min(max(self.imbalance_size,
+                                                      self.big_blind),
+                                                  self.active_player.stack -
+                                                  self.imbalance_size)
             if self.is_fixed_limit:
                 raise_size = min_raise
             else:
@@ -371,17 +403,15 @@ class HdPlayed(object):
                     self.update_hand_histories("{} raises {}, and is all-in\n"
                                                .format(self.active_player.name,
                                                        amount_on_top))
-                    self.imbalance_size = amount_on_top
                 else:
                     self.update_hand_histories("{} calls {}, and is all-in\n"
                                                .format(self.active_player.name,
                                                        raise_size))
-                    self.imbalance_size = amount_on_top
                 self.someone_is_all_in = True
-
-            self.update_hand_histories("{} raises {}\n"
-                                       .format(self.active_player.name,
-                                               amount_on_top))
+            else:
+                self.update_hand_histories("{} raises {}\n"
+                                           .format(self.active_player.name,
+                                                   amount_on_top))
             self.imbalance_size = amount_on_top
             # if someone has gone all-in, there may be an imbalance left and
             # the first player to have moved may have had more chips,
@@ -399,10 +429,10 @@ class HdPlayed(object):
             if self.someone_is_all_in:
                 all_in_amount = min(self.active_player.stack,
                                     self.imbalance_size)
-                self.hand_over = True
             else:
                 all_in_amount = self.active_player.stack
-                self.active_player.bet_amount(all_in_amount)
+                self.someone_is_all_in = True
+            self.active_player.bet_amount(all_in_amount)
             self.pot_size += all_in_amount
             amount_on_top = all_in_amount - self.imbalance_size
             if amount_on_top > 0:
@@ -413,7 +443,6 @@ class HdPlayed(object):
                 self.update_hand_histories("{} calls {}, and is all-in\n"
                                            .format(self.active_player.name,
                                                    all_in_amount))
-            self.someone_is_all_in = True
             self.imbalance_size = amount_on_top
             # if someone has gone all-in, there may be an imbalance left and
             # the first player to have moved may have had more chips,
@@ -490,10 +519,14 @@ class HdPlayed(object):
         Returns:
             state (array): state of the environment
             hand_over (bool): indicating if opponent folds small blind
+            info (object): hand history for debugging purposes
         """
         # checking it is called at the right moment
         self._next_stage()
         assert(self.stage == 'pre-flop')
+
+        # update possible actions
+        self._update_possible_actions()
 
         # let the opponent play if it is its turn to
         if not isinstance(self.active_player, DQNAgent):
@@ -517,7 +550,8 @@ class HdPlayed(object):
         # update possible actions
         self._update_possible_actions()
         # return initial state
-        return self._get_hero_state(), self.hand_over
+        return self._get_hero_state(), self.hand_over, self.\
+            _get_hero_hand_history()
 
     def step(self, action):
         """
@@ -535,8 +569,6 @@ class HdPlayed(object):
         # make sure action is valid
         assert(action in self.possible_actions)
 
-        # TODO: what if both all-in, need to run through showdown
-
         # enforce action from agent
         self._enforce_action(action)
 
@@ -545,11 +577,23 @@ class HdPlayed(object):
             return self._get_hero_state(), self.hero_reward, \
                    self.hand_over, self._get_hero_hand_history()
 
+        # if both all in, need to go to showdown
+        if self.someone_is_all_in and self.imbalance_size == 0:
+            logging.debug("Both all-in, going to showdown")
+            while not self.hand_over:
+                self._next_stage()
+            return self._get_hero_state(), self.hero_reward, self\
+                .hand_over, self._get_hero_hand_history()
+
         # check if betting round is over
         if self._is_betting_round_over():
             self._next_stage()
             logging.debug("Betting round is over, going to next stage, "
                           "on to {}".format(self.active_player.name))
+            # if showdown, hand is over:
+            if self.hand_over:
+                return self._get_hero_state(), self.hero_reward, \
+                       self.hand_over, self._get_hero_hand_history()
         else:  # if not action is on the opponent
             self._next_turn()
             logging.debug("Betting round continues, on to {}"
@@ -581,11 +625,23 @@ class HdPlayed(object):
                 return self._get_hero_state(), self.hero_reward, \
                        self.hand_over, self._get_hero_hand_history()
 
+            # if both all in, need to go to showdown
+            if self.someone_is_all_in and self.imbalance_size == 0:
+                logging.debug("Both all-in, going to showdown")
+                while not self.hand_over:
+                    self._next_stage()
+                return self._get_hero_state(), self.hero_reward, self \
+                    .hand_over, self._get_hero_hand_history()
+
             # check if betting round is over
             if self._is_betting_round_over():
                 self._next_stage()
                 logging.debug("Betting round is over, going to next stage, "
                               "on to {}".format(self.active_player.name))
+                # if showdown, hand is over:
+                if self.hand_over:
+                    return self._get_hero_state(), self.hero_reward, \
+                           self.hand_over, self._get_hero_hand_history()
             else:  # if not action is on the agent again
                 self._next_turn()
                 logging.debug("Betting round continues, on to {}"
