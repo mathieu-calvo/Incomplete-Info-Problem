@@ -488,7 +488,8 @@ class HdPlayed(object):
         betting round
 
         Returns:
-            (array): state of the environment
+            state (array): state of the environment
+            hand_over (bool): indicating if opponent folds small blind
         """
         # checking it is called at the right moment
         self._next_stage()
@@ -513,12 +514,10 @@ class HdPlayed(object):
                 # change whose turn it is
                 self._next_turn()
 
-            # TODO: what if opponent ends the hand? reward with no action
-
         # update possible actions
         self._update_possible_actions()
         # return initial state
-        return self._get_hero_state()
+        return self._get_hero_state(), self.hand_over
 
     def step(self, action):
         """

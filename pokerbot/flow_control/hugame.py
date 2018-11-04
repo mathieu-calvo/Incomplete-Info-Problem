@@ -127,12 +127,13 @@ class HuGame(object):
 
         Returns:
             state (array): numerical representation of environment
+            hand_over (bool): indicating if opponent folds small blind
         """
         # deal new hand
         self.current_hand = self._deal_hand()
         # get initial state from it
-        state = self.current_hand.initial_step()
-        return state
+        state, hand_over = self.current_hand.initial_step()
+        return state, hand_over
 
 
 

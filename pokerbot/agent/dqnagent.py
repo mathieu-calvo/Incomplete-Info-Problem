@@ -1,12 +1,16 @@
 
 import random
 import numpy as np
+import logging
 from collections import deque
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
 
 from pokerbot.flow_control.player import Player
+
+logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
+                    level=logging.INFO)
 
 
 class DQNAgent(Player):
@@ -52,7 +56,9 @@ class DQNAgent(Player):
 
     def act(self, state):
         if np.random.rand() <= self.epsilon:
+            logging.debug("agent acts randomly")
             return random.randrange(self.action_size)
+        logging.debug("agent uses model to act")
         act_values = self.model.predict(state)
         return np.argmax(act_values[0])  # returns action
 

@@ -47,7 +47,13 @@ def run():
         # reset environment
         env.reset()
         # and get initial state as row vector
-        state = env.initial_step()
+        state, hand_over = env.initial_step()
+        # if hand is over, need to do initial step again
+        if hand_over:
+            # discard all hands where opponent fold right away
+            # TODO: is it the right thing to do?
+            while hand_over:
+                state, hand_over = env.initial_step()
         # reshape state into something ANN understands
         state = np.reshape(np.array(state), [1, 15])
 
@@ -55,16 +61,18 @@ def run():
 
             # get action from agent following an epsilon greedy policy
             action = agent.act(state)
+            logging.debug("agent action: {}".format(action))
 
             # translate numerical action into str action
             possible_actions = env.current_hand.possible_actions
+            logging.debug("possible actions: {}".format(possible_actions))
             if action == 0:
                 if 'check' in possible_actions:
                     str_action = 'check'
                 elif 'call' in possible_actions:
                     str_action = 'call'
                 else:
-                    str_action = 'all*in'
+                    str_action = 'all-in'
             elif action == 1:
                 if 'bet' in possible_actions:
                     str_action = 'bet'
@@ -75,7 +83,11 @@ def run():
                 else:
                     str_action = 'call'
             else:
-                str_action = 'fold'
+                if 'check' in possible_actions:
+                    str_action = 'check'
+                else:
+                    str_action = 'fold'
+            logging.debug("action applied: {}".format(str_action))
 
             # apply action into environment and observe feedback
             next_state, reward, game_done, hand_over, info = \
@@ -90,7 +102,12 @@ def run():
             # reinitialize variables
             # if hand is over, need to do initial step again
             if hand_over:
-                state = env.initial_step()
+                # discard all hands where opponent fold right away
+                # TODO: is it the right thing to do?
+                while hand_over:
+                    state, hand_over = env.initial_step()
+                # reshape state into something ANN understands
+                state = np.reshape(np.array(state), [1, 15])
             else:
                 state = next_state
 
@@ -105,3 +122,5 @@ def run():
             # this piece is also responsible for the decay in epsilon
             if len(agent.memory) > batch_size:
                 agent.replay(batch_size)
+
+    return agent
