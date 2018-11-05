@@ -5,10 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from .agent.dqnagent import DQNAgent
-
-# from .flow_control.headsupgame import HeadsUpGame
 from .flow_control.hugame import HuGame
-
 from .opponents.humanplayer import HumanPlayer
 from .opponents.randomplayer import RandomPlayer
 from .opponents.fishplayer import FishPlayer
@@ -20,10 +17,14 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
 
 def run(nb_episodes=500, starting_stack=1000, big_blind=20,
         max_nb_hands=100, is_fixed_limit=True, batch_size=32,
+        learning_rate=0.001, gamma=0.95, epsilon_decay=0.995,
         opponent_cls=FishPlayer):
 
     # create agent
-    agent = DQNAgent(starting_stack, "Q-Lee")
+    agent = DQNAgent(starting_stack, "Q-Lee",
+                     learning_rate=learning_rate,
+                     gamma=gamma,
+                     epsilon_decay=epsilon_decay)
 
     # create opponent
     opponent = opponent_cls(starting_stack, 'Villain')
@@ -142,7 +143,7 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
             # this piece is also responsible for the decay in epsilon
             if len(agent.memory) > batch_size:
                 agent.replay(batch_size)
-        
+
         # epsilon decay
         agent.decay_epsilon()
 

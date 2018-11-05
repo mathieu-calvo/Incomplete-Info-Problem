@@ -23,7 +23,8 @@ class DQNAgent(Player):
     Many methods allow the agent to learn by interacting with the environment
     """
 
-    def __init__(self, stack, name):
+    def __init__(self, stack, name,
+                 epsilon_decay=0.995, learning_rate=0.01, gamma=0.95):
         """
         Instantiating the object using a numeric stack and a name
         e.g. DQNAgent(100,"Joe")
@@ -34,11 +35,11 @@ class DQNAgent(Player):
         self.state_size = 15  # dimension of row vector representing the env
         self.action_size = 3  # CALL (CHECK) - BET (RAISE) - FOLD
         self.memory = deque(maxlen=2000)
-        self.gamma = 0.95    # discount rate
+        self.gamma = gamma    # discount rate
         self.epsilon = 1.0  # exploration rate
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
-        self.learning_rate = 0.001
+        self.epsilon_decay = epsilon_decay
+        self.learning_rate = learning_rate
         self.model = self._build_model()
 
     def _build_model(self):
