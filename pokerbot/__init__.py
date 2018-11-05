@@ -21,4 +21,4 @@ from .opponents.fixedpolicyplayer import StartingHandPlayer, \
 
 from .agent.dqnagent import DQNAgent
 
-from .try_functionality import run
+from .try_functionality import run, visualize_results

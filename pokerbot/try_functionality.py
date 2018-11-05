@@ -9,38 +9,27 @@ from .agent.dqnagent import DQNAgent
 # from .flow_control.headsupgame import HeadsUpGame
 from .flow_control.hugame import HuGame
 
-# from .opponents.humanplayer import HumanPlayer
-# from .opponents.randomplayer import RandomPlayer
-# from .opponents.fishplayer import FishPlayer
-from .opponents.fixedpolicyplayer import StartingHandPlayer
-# StrengthHandPlayer
+from .opponents.humanplayer import HumanPlayer
+from .opponents.randomplayer import RandomPlayer
+from .opponents.fishplayer import FishPlayer
+from .opponents.fixedpolicyplayer import StartingHandPlayer, StrengthHandPlayer
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.DEBUG)
 
 
-def run(nb_episodes=15):
-
-    # parameters of environment
-    starting_stack = 100
-    big_blind = 10
-    max_nb_hands = 10
-    is_fixed_limit = True
-    batch_size = 32
+def run(nb_episodes=500, starting_stack=1000, big_blind=20,
+        max_nb_hands=100, is_fixed_limit=True, batch_size=32,
+        opponent_cls=FishPlayer):
 
     # create agent
     agent = DQNAgent(starting_stack, "Q-Lee")
 
-    # create opponents
-    # player_one = HumanPlayer(starting_stack, "Sapiens")
-    # player_two = RandomPlayer(starting_stack, "Hazard")
-    # player_three = FishPlayer(starting_stack, "Nemo")
-    # player_four = RandomPlayer(starting_stack, "Random")
-    # player_five = StartingHandPlayer(starting_stack, "Tight")
-    # player_six = StrengthHandPlayer(starting_stack, "Carlo")
+    # create opponent
+    opponent = opponent_cls(starting_stack, 'Villain')
 
     # create the environment
-    env = HuGame(max_nb_hands, big_blind, agent, player_five, is_fixed_limit)
+    env = HuGame(max_nb_hands, big_blind, agent, opponent, is_fixed_limit)
 
     # total reward for episode
     total_reward = 0
@@ -58,7 +47,9 @@ def run(nb_episodes=15):
         action_type_list = []
 
         # catching bugs
-        if agent.stack + player_five.stack != 2 * starting_stack:
+        if env.hand_number > env.max_nb_hands:
+            break
+        if agent.stack + opponent.stack != 2 * starting_stack:
             break
         if total_reward > starting_stack:
             break
@@ -151,6 +142,9 @@ def run(nb_episodes=15):
             # this piece is also responsible for the decay in epsilon
             if len(agent.memory) > batch_size:
                 agent.replay(batch_size)
+        
+        # epsilon decay
+        agent.decay_epsilon()
 
     # concatenate results
     results = [total_reward_list, nb_hands_list,
@@ -159,7 +153,7 @@ def run(nb_episodes=15):
     return agent, env, results
 
 
-def visualize_results(results, env):
+def visualize_results(agent, env, results):
     # put results in a DataFrame
     df = pd.DataFrame({'rewards': results[0], 'nb_hands': results[1],
                        'epsilon': results[2], 'action_type': results[3]})
@@ -177,8 +171,17 @@ def visualize_results(results, env):
     # create subplots
     fig, ax = plt.subplots(2, 2)
     # title with import number of parameters
-    fig.suptitle("Training versus {} \nEpisodes: {} - Hands {} - Actions {}"
-                 .format(type(env.player_villain).__name__,
+    fig.suptitle("Training versus {} "
+                 "\nLearning rate {} - Discount factor {} - Epsilon decay {}"
+                 "\nStarting stack {} - Big blind {} - Max nb hands {} "
+                 "\nEpisodes: {} - Hands {} - Actions {}"
+                 .format(agent.learning_rate,
+                         agent.gamma,
+                         agent.epsilon_decay,
+                         type(env.player_villain).__name__,
+                         env.player_hero.initial_stack,
+                         env.big_blind,
+                         env.max_nb_hands,
                          len(results[0]),
                          sum(results[1]),
                          sum([sum(action_list)
@@ -206,10 +209,11 @@ def visualize_results(results, env):
                        df["count_0_rw100"] / df['total_rw100'],
                        df["count_1_rw100"] / df['total_rw100'],
                        df["count_2_rw100"] / df['total_rw100'],
-                       labels=['0', '1', '2'])
+                       labels=['passive - call',
+                               'aggressive',
+                               'passive - fold'])
     ax[1, 1].set_title("Action type breakdown")
     ax[1, 1].set_ylabel("proportion (%)")
     ax[1, 1].set_xlabel("episodes")
     ax[1, 1].legend(loc='upper left')
     return fig, ax
-
