@@ -1,4 +1,5 @@
 
+import os
 import logging
 import numpy as np
 import pandas as pd
@@ -36,7 +37,8 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
                      epsilon_decay=epsilon_decay)
 
     # load existing knowledge
-    agent.load("./models/{}".format(opponent_cls))
+    agent.load("./pokerbot/pokerbot/agent/models/{}".format(str(
+        opponent_cls.__name__)))
 
     # create opponent
     opponent = opponent_cls(starting_stack, 'Villain')
