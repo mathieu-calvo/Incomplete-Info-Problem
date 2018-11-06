@@ -8,9 +8,8 @@ from .dqnagent import DQNAgent
 from ..flow_control.hugame import HuGame
 from ..opponents.humanplayer import HumanPlayer
 from ..opponents.randomplayer import RandomPlayer
-from ..opponents.fishplayer import FishPlayer
 from ..opponents.fixedpolicyplayer import StartingHandPlayer, \
-    StrengthHandPlayer
+    StrengthHandPlayer, FishPlayer
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.DEBUG)

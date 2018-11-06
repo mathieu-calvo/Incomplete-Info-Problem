@@ -15,9 +15,8 @@ from .hand_evaluation.hand_potential import estimate_win_rate, \
 
 from .opponents.randomplayer import RandomPlayer
 from .opponents.humanplayer import HumanPlayer
-from .opponents.fishplayer import FishPlayer
 from .opponents.fixedpolicyplayer import StartingHandPlayer, \
-    StrengthHandPlayer
+    StrengthHandPlayer, FishPlayer
 
 from .agent.dqnagent import DQNAgent
 from .agent.training import run, visualize_results
