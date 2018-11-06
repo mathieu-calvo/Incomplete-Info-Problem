@@ -4,15 +4,25 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from .agent.dqnagent import DQNAgent
-from .flow_control.hugame import HuGame
-from .opponents.humanplayer import HumanPlayer
-from .opponents.randomplayer import RandomPlayer
-from .opponents.fishplayer import FishPlayer
-from .opponents.fixedpolicyplayer import StartingHandPlayer, StrengthHandPlayer
+from .dqnagent import DQNAgent
+from ..flow_control.hugame import HuGame
+from ..opponents.humanplayer import HumanPlayer
+from ..opponents.randomplayer import RandomPlayer
+from ..opponents.fishplayer import FishPlayer
+from ..opponents.fixedpolicyplayer import StartingHandPlayer, \
+    StrengthHandPlayer
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.DEBUG)
+
+# import time
+# from datetime import timedelta
+# start_time = time.monotonic()
+# agent, env, results = run(nb_episodes=500, gamma=0.8,
+#                           learning_rate=0.1, batch_size=100)
+# fig, ax = visualize_results(agent, env, results)
+# end_time = time.monotonic()
+# print(timedelta(seconds=end_time - start_time))
 
 
 def run(nb_episodes=500, starting_stack=1000, big_blind=20,
@@ -25,6 +35,9 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
                      learning_rate=learning_rate,
                      gamma=gamma,
                      epsilon_decay=epsilon_decay)
+
+    # load existing knowledge
+    agent.load("./models/{}".format(opponent_cls))
 
     # create opponent
     opponent = opponent_cls(starting_stack, 'Villain')
@@ -40,12 +53,15 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
     nb_hands_list = []
     epsilon_list = []
     action_type_list_of_lists = []
+    first_action_type_list_of_lists = []
 
     # training
     for e in range(nb_episodes):
 
         # analytical results - many per episode
         action_type_list = []
+        first_action_type_list = []
+        waiting_for_first_action = True
 
         # catching bugs
         if env.hand_number > env.max_nb_hands:
@@ -75,6 +91,9 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
             logging.debug("agent action: {}".format(action))
             # analytical results - many per episode
             action_type_list.append(action)
+            if waiting_for_first_action:
+                first_action_type_list.append(action)
+                waiting_for_first_action = False
 
             # translate numerical action into str action
             possible_actions = env.current_hand.possible_actions
@@ -115,7 +134,7 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
             # if done print relevant metrics and exit episode
             if game_done:
                 total_reward = env.player_hero.stack - starting_stack
-                print("episode: {}/{}, nb_hands: {}, e: {:.2}, reward: {}"
+                print("episode: {}/{}, nb_hands: {}, e: {:.3}, reward: {}"
                       .format(e + 1, nb_episodes, env.hand_number,
                               agent.epsilon, total_reward))
 
@@ -124,6 +143,7 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
                 nb_hands_list.append(env.hand_number)
                 epsilon_list.append(agent.epsilon)
                 action_type_list_of_lists.append(action_type_list)
+                first_action_type_list_of_lists.append(first_action_type_list)
                 break
 
             # reinitialize variables
@@ -135,6 +155,8 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
                     state, hand_over = env.initial_step()
                 # reshape state into something ANN understands
                 state = np.reshape(np.array(state), [1, 15])
+                # reinitialize variable
+                waiting_for_first_action = True
             else:
                 state = next_state
 
@@ -148,8 +170,8 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
         agent.decay_epsilon()
 
     # concatenate results
-    results = [total_reward_list, nb_hands_list,
-               epsilon_list, action_type_list_of_lists]
+    results = [total_reward_list, nb_hands_list, epsilon_list,
+               action_type_list_of_lists, first_action_type_list_of_lists]
 
     return agent, env, results
 
@@ -157,7 +179,8 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
 def visualize_results(agent, env, results):
     # put results in a DataFrame
     df = pd.DataFrame({'rewards': results[0], 'nb_hands': results[1],
-                       'epsilon': results[2], 'action_type': results[3]})
+                       'epsilon': results[2], 'action_type': results[3],
+                       'first_action_type': results[4]})
     # adding features from action type lists
     df['count_0'] = df['action_type'].apply(lambda x: x.count(0))
     df['count_1'] = df['action_type'].apply(lambda x: x.count(1))
@@ -167,44 +190,69 @@ def visualize_results(agent, env, results):
     df['count_2_rw100'] = df['count_2'].rolling(window=100).mean()
     df['total_rw100'] = df['count_0_rw100'] + df['count_1_rw100'] + df[
         'count_2_rw100']
+    # adding features from first action type lists
+    df['count_0_first'] = df['first_action_type'].apply(lambda x: x.count(0))
+    df['count_1_first'] = df['first_action_type'].apply(lambda x: x.count(1))
+    df['count_2_first'] = df['first_action_type'].apply(lambda x: x.count(2))
+    df['count_0_first_rw100'] = df['count_0_first'].rolling(window=100).mean()
+    df['count_1_first_rw100'] = df['count_1_first'].rolling(window=100).mean()
+    df['count_2_first_rw100'] = df['count_2_first'].rolling(window=100).mean()
+    df['total_first_rw100'] = df['count_0_first_rw100'] + \
+                              df['count_1_first_rw100'] + \
+                              df['count_2_first_rw100']
     # close all open figures
     plt.close("all")
     # create subplots
     fig, ax = plt.subplots(2, 2)
     # title with import number of parameters
     fig.suptitle("Training versus {} "
-                 "\nLearning rate {} - Discount factor {} - Epsilon decay {}"
-                 "\nStarting stack {} - Big blind {} - Max nb hands {} "
+                 "\nLearning rate {} - Discount factor {} - Epsilon decay {} -"
+                 " Starting stack {} - Big blind {} - Max nb hands {}"
                  "\nEpisodes: {} - Hands {} - Actions {}"
-                 .format(agent.learning_rate,
+                 .format(type(env.player_villain).__name__,
+                         agent.learning_rate,
                          agent.gamma,
                          agent.epsilon_decay,
-                         type(env.player_villain).__name__,
                          env.player_hero.initial_stack,
                          env.big_blind,
                          env.max_nb_hands,
                          len(results[0]),
                          sum(results[1]),
-                         sum([sum(action_list)
-                              for action_list in results[3]])),
+                         sum([len(action_list) for action_list in results[
+                             3]])),
                  fontsize=14)
     # rewards on a rolling window
     ax[0, 0].plot(df['rewards'].rolling(window=50).mean(), label='50')
     ax[0, 0].plot(df['rewards'].rolling(window=100).mean(), label='100')
-    ax[0, 0].set_title("Rewards per episode on rolling window")
+    ax[0, 0].set_title("Rewards per episode - rolling window")
     ax[0, 0].set_ylabel("reward")
     ax[0, 0].legend(loc='upper left')
+    # adding epsilon
+    ax2 = ax[0, 0].twinx()
+    ax2.plot(df['epsilon'], color='r', linestyle='--')
+    ax2.set_ylabel("epsilon")
     # number of hands on a rolling window
     ax[0, 1].plot(df['nb_hands'].rolling(window=50).mean(), label='50')
     ax[0, 1].plot(df['nb_hands'].rolling(window=100).mean(), label='100')
-    ax[0, 1].set_title("Number of hands per episode on rolling window")
+    ax[0, 1].set_title("Number of hands per episode - rolling window")
     ax[0, 1].set_ylabel("number of hands")
     ax[0, 1].legend(loc='upper left')
-    # epsilon
-    ax[1, 0].plot(df['epsilon'])
-    ax[1, 0].set_title("Epsilon")
-    ax[1, 0].set_ylabel("epsilon")
+    # adding epsilon
+    ax3 = ax[0, 1].twinx()
+    ax3.plot(df['epsilon'], color='r', linestyle='--')
+    ax3.set_ylabel("epsilon")
+    # first action types on a rolling window
+    ax[1, 0].stackplot(range(1, len(df['count_0_first_rw100']) + 1),
+                       df["count_0_first_rw100"] / df['total_first_rw100'],
+                       df["count_1_first_rw100"] / df['total_first_rw100'],
+                       df["count_2_first_rw100"] / df['total_first_rw100'],
+                       labels=['passive - call',
+                               'aggressive',
+                               'passive - fold'])
+    ax[1, 0].set_title("First action type breakdown - rolling window 100")
+    ax[1, 0].set_ylabel("proportion (%)")
     ax[1, 0].set_xlabel("episodes")
+    ax[1, 0].legend(loc='upper left')
     # action types on a rolling window
     ax[1, 1].stackplot(range(1, len(df['count_0_rw100']) + 1),
                        df["count_0_rw100"] / df['total_rw100'],
@@ -213,7 +261,7 @@ def visualize_results(agent, env, results):
                        labels=['passive - call',
                                'aggressive',
                                'passive - fold'])
-    ax[1, 1].set_title("Action type breakdown")
+    ax[1, 1].set_title("Action type breakdown - rolling window 100")
     ax[1, 1].set_ylabel("proportion (%)")
     ax[1, 1].set_xlabel("episodes")
     ax[1, 1].legend(loc='upper left')

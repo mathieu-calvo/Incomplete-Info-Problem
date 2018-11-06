@@ -20,5 +20,4 @@ from .opponents.fixedpolicyplayer import StartingHandPlayer, \
     StrengthHandPlayer
 
 from .agent.dqnagent import DQNAgent
-
-from .try_functionality import run, visualize_results
+from .agent.training import run, visualize_results
