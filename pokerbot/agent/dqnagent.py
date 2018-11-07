@@ -6,6 +6,7 @@ from collections import deque
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.models import load_model
 
 from pokerbot.flow_control.player import Player
 
@@ -79,8 +80,14 @@ class DQNAgent(Player):
             target_f[0][action] = target
             self.model.fit(state, target_f, epochs=1, verbose=0)
 
-    def load(self, name):
-        self.model.load_weights(name)
+    def loading_weights(self, file_path):
+        self.model.load_weights(file_path)
 
-    def save(self, name):
-        self.model.save_weights(name)
+    def loading_model(self, file_path):
+        self.model = load_model(file_path)
+
+    def saving_weights(self, file_path):
+        self.model.save_weights(file_path)
+
+    def saving_model(self, file_path):
+        self.model.save(file_path)

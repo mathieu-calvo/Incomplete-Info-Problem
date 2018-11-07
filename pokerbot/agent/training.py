@@ -16,14 +16,31 @@ from ..opponents.fixedpolicyplayer import StartingHandPlayer, \
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.DEBUG)
 
-# agent, env, results = run(nb_episodes=500, batch_size=100)
+# agent, env, results = run(nb_episodes=10, starting_epsilon=0.0)
 # fig, ax = visualize_results(agent, env, results)
 
 
+def rescale_state(state):
+    """
+    Rescale state by using min-max normalization
+
+    Args: state (array)
+
+    Returns: scaled_state (list)
+    """
+    for i in [0, 1, -1]:  # stacks and pot size
+        state[i] = (state[i] - (-1000)) / (1000 - (-1000))
+    for k in range(3, 10):  # cards
+        state[k] = (state[k] - 1) / (52 - 1)
+    for j in range(10, 14):  # action sequences
+        state[j] = (state[j] - 0) / (24 - 0)
+    return state
+
+
 def run(nb_episodes=500, starting_stack=1000, big_blind=20,
-        max_nb_hands=100, is_fixed_limit=True, batch_size=32,
+        max_nb_hands=50, is_fixed_limit=True, batch_size=25,
         learning_rate=0.1, gamma=0.8, epsilon_decay=0.995,
-        starting_epsilon=1.0, epsilon_min=0.01, opponent_cls=FishPlayer):
+        starting_epsilon=1.0, epsilon_min=0.0, opponent_cls=FishPlayer):
 
     # create agent
     agent = DQNAgent(starting_stack, "Q-Lee",
@@ -34,8 +51,8 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
                      epsilon_min=epsilon_min)
 
     # load existing knowledge
-    agent.load("./pokerbot/pokerbot/agent/models/model_{}.h5".format(str(
-        opponent_cls.__name__)))
+    agent.loading_model("./pokerbot/pokerbot/agent/models/{}_model.h5".format(
+        str(opponent_cls.__name__)))
 
     # create opponent
     opponent = opponent_cls(starting_stack, 'Villain')
@@ -82,6 +99,8 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
             # TODO: is it the right thing to do?
             while hand_over:
                 state, hand_over = env.initial_step()
+        # rescale state - pre-processing stage
+        state = rescale_state(state)
         # reshape state into something ANN understands
         state = np.reshape(np.array(state), [1, 15])
 
@@ -126,6 +145,9 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
             next_state, reward, game_done, hand_over, info = \
                 env.step(str_action)
 
+            # rescale state - pre-processing stage
+            next_state = rescale_state(next_state)
+
             # reshape state into something ANN understands
             next_state = np.reshape(np.array(next_state), [1, 15])
 
@@ -154,6 +176,8 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
                 # TODO: is it the right thing to do?
                 while hand_over:
                     state, hand_over = env.initial_step()
+                # rescale state - pre-processing stage
+                state = rescale_state(state)
                 # reshape state into something ANN understands
                 state = np.reshape(np.array(state), [1, 15])
                 # reinitialize variable
@@ -180,8 +204,8 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
                training_time]
 
     # save new knowledge
-    agent.save("./pokerbot/pokerbot/agent/models/model_{}.h5".format(str(
-        opponent_cls.__name__)))
+    agent.saving_model("./pokerbot/pokerbot/agent/models/{}_model.h5".format(
+        str(opponent_cls.__name__)))
 
     return agent, env, results
 
