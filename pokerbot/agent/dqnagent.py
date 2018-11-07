@@ -24,7 +24,8 @@ class DQNAgent(Player):
     """
 
     def __init__(self, stack, name,
-                 epsilon_decay=0.995, learning_rate=0.01, gamma=0.95):
+                 epsilon_decay=0.995, learning_rate=0.01, gamma=0.95,
+                 starting_epsilon=1.0, epsilon_min=0.01):
         """
         Instantiating the object using a numeric stack and a name
         e.g. DQNAgent(100,"Joe")
@@ -36,8 +37,8 @@ class DQNAgent(Player):
         self.action_size = 3  # CALL (CHECK) - BET (RAISE) - FOLD
         self.memory = deque(maxlen=2000)
         self.gamma = gamma    # discount rate
-        self.epsilon = 1.0  # exploration rate
-        self.epsilon_min = 0.01
+        self.epsilon = starting_epsilon  # exploration rate
+        self.epsilon_min = epsilon_min
         self.epsilon_decay = epsilon_decay
         self.learning_rate = learning_rate
         self.model = self._build_model()

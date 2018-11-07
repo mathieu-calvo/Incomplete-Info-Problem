@@ -1,9 +1,10 @@
 
-import os
 import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import time
+from datetime import timedelta
 
 from .dqnagent import DQNAgent
 from ..flow_control.hugame import HuGame
@@ -15,29 +16,25 @@ from ..opponents.fixedpolicyplayer import StartingHandPlayer, \
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.DEBUG)
 
-# import time
-# from datetime import timedelta
-# start_time = time.monotonic()
-# agent, env, results = run(nb_episodes=500, gamma=0.8,
-#                           learning_rate=0.1, batch_size=100)
+# agent, env, results = run(nb_episodes=500, batch_size=100)
 # fig, ax = visualize_results(agent, env, results)
-# end_time = time.monotonic()
-# print(timedelta(seconds=end_time - start_time))
 
 
 def run(nb_episodes=500, starting_stack=1000, big_blind=20,
         max_nb_hands=100, is_fixed_limit=True, batch_size=32,
-        learning_rate=0.001, gamma=0.95, epsilon_decay=0.995,
-        opponent_cls=FishPlayer):
+        learning_rate=0.1, gamma=0.8, epsilon_decay=0.995,
+        starting_epsilon=1.0, epsilon_min=0.01, opponent_cls=FishPlayer):
 
     # create agent
     agent = DQNAgent(starting_stack, "Q-Lee",
                      learning_rate=learning_rate,
                      gamma=gamma,
-                     epsilon_decay=epsilon_decay)
+                     epsilon_decay=epsilon_decay,
+                     starting_epsilon=starting_epsilon,
+                     epsilon_min=epsilon_min)
 
     # load existing knowledge
-    agent.load("./pokerbot/pokerbot/agent/models/{}".format(str(
+    agent.load("./pokerbot/pokerbot/agent/models/model_{}.h5".format(str(
         opponent_cls.__name__)))
 
     # create opponent
@@ -55,6 +52,9 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
     epsilon_list = []
     action_type_list_of_lists = []
     first_action_type_list_of_lists = []
+
+    # time taking
+    start_time = time.monotonic()
 
     # training
     for e in range(nb_episodes):
@@ -170,9 +170,18 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
         # epsilon decay
         agent.decay_epsilon()
 
+    # time
+    end_time = time.monotonic()
+    training_time = timedelta(seconds=end_time - start_time)
+
     # concatenate results
     results = [total_reward_list, nb_hands_list, epsilon_list,
-               action_type_list_of_lists, first_action_type_list_of_lists]
+               action_type_list_of_lists, first_action_type_list_of_lists,
+               training_time]
+
+    # save new knowledge
+    agent.save("./pokerbot/pokerbot/agent/models/model_{}.h5".format(str(
+        opponent_cls.__name__)))
 
     return agent, env, results
 
@@ -209,7 +218,7 @@ def visualize_results(agent, env, results):
     fig.suptitle("Training versus {} "
                  "\nLearning rate {} - Discount factor {} - Epsilon decay {} -"
                  " Starting stack {} - Big blind {} - Max nb hands {}"
-                 "\nEpisodes: {} - Hands {} - Actions {}"
+                 "\nEpisodes: {} - Hands {} - Actions {} - Time {}"
                  .format(type(env.player_villain).__name__,
                          agent.learning_rate,
                          agent.gamma,
@@ -220,7 +229,8 @@ def visualize_results(agent, env, results):
                          len(results[0]),
                          sum(results[1]),
                          sum([len(action_list) for action_list in results[
-                             3]])),
+                             3]]),
+                         str(results[5])),
                  fontsize=14)
     # rewards on a rolling window
     ax[0, 0].plot(df['rewards'].rolling(window=50).mean(), label='50')
