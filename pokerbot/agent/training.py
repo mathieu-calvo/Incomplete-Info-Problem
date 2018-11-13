@@ -19,28 +19,49 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
 # agent, env, results = run(nb_episodes=10, starting_epsilon=0.0)
 # fig, ax = visualize_results(agent, env, results)
 
+# nb_episodes=500
+# starting_stack=1000
+# big_blind=20
+# max_nb_hands=50
+# is_fixed_limit=True
+# batch_size=25
+# learning_rate=0.1
+# gamma=0.8
+# epsilon_decay=0.995
+# starting_epsilon=1.0
+# epsilon_min=0.0,
+# loading_model=True
+# opponent_cls=FishPlayer
 
-def rescale_state(state):
+
+def rescale_state(state_to_scale, starting_stack):
     """
     Rescale state by using min-max normalization
 
-    Args: state (array)
+    Args: state_to_scale (array)
 
     Returns: scaled_state (list)
     """
-    for i in [0, 1, -1]:  # stacks and pot size
-        state[i] = (state[i] - (-1000)) / (1000 - (-1000))
-    for k in range(3, 10):  # cards
-        state[k] = (state[k] - 1) / (52 - 1)
-    for j in range(10, 14):  # action sequences
-        state[j] = (state[j] - 0) / (24 - 0)
-    return state
+    scaled_state = state_to_scale.copy()
+    # stacks
+    for i in [0, 1]:
+        scaled_state[i] = (state_to_scale[i] - 0) / (starting_stack - 0)
+    # cards
+    for k in range(3, 10):
+        scaled_state[k] = (state_to_scale[k] - 0) / (52 - 0)
+    # action sequences
+    for j in range(10, 14):
+        scaled_state[j] = (state_to_scale[j] - 0) / (24 - 0)
+    # pot size
+    scaled_state[-1] = (state_to_scale[-1] - 0) / (starting_stack * 2 - 0)
+    return scaled_state
 
 
 def run(nb_episodes=500, starting_stack=1000, big_blind=20,
         max_nb_hands=50, is_fixed_limit=True, batch_size=25,
         learning_rate=0.1, gamma=0.8, epsilon_decay=0.995,
-        starting_epsilon=1.0, epsilon_min=0.0, opponent_cls=FishPlayer):
+        starting_epsilon=1.0, epsilon_min=0.0,
+        loading_model=True, opponent_cls=FishPlayer):
 
     # create agent
     agent = DQNAgent(starting_stack, "Q-Lee",
@@ -51,8 +72,9 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
                      epsilon_min=epsilon_min)
 
     # load existing knowledge
-    agent.loading_model("./pokerbot/pokerbot/agent/models/{}_model.h5".format(
-        str(opponent_cls.__name__)))
+    if loading_model:
+        agent.loading_model("./pokerbot/pokerbot/agent/models/{}_model.h5"
+                            .format(str(opponent_cls.__name__)))
 
     # create opponent
     opponent = opponent_cls(starting_stack, 'Villain')
@@ -100,7 +122,7 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
             while hand_over:
                 state, hand_over = env.initial_step()
         # rescale state - pre-processing stage
-        state = rescale_state(state)
+        state = rescale_state(state, starting_stack)
         # reshape state into something ANN understands
         state = np.reshape(np.array(state), [1, 15])
 
@@ -146,7 +168,7 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
                 env.step(str_action)
 
             # rescale state - pre-processing stage
-            next_state = rescale_state(next_state)
+            next_state = rescale_state(next_state, starting_stack)
 
             # reshape state into something ANN understands
             next_state = np.reshape(np.array(next_state), [1, 15])
@@ -177,7 +199,7 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
                 while hand_over:
                     state, hand_over = env.initial_step()
                 # rescale state - pre-processing stage
-                state = rescale_state(state)
+                state = rescale_state(state, starting_stack)
                 # reshape state into something ANN understands
                 state = np.reshape(np.array(state), [1, 15])
                 # reinitialize variable
