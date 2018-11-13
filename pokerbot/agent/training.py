@@ -61,23 +61,28 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
         max_nb_hands=50, is_fixed_limit=True, batch_size=25,
         learning_rate=0.1, gamma=0.8, epsilon_decay=0.995,
         starting_epsilon=1.0, epsilon_min=0.0,
-        loading_model=True, opponent_cls=FishPlayer):
+        loading_model=True, saving_model=True,
+        agent_cls=DQNAgent, opponent_cls=FishPlayer):
 
-    # create agent
-    agent = DQNAgent(starting_stack, "Q-Lee",
-                     learning_rate=learning_rate,
-                     gamma=gamma,
-                     epsilon_decay=epsilon_decay,
-                     starting_epsilon=starting_epsilon,
-                     epsilon_min=epsilon_min)
-
-    # load existing knowledge
-    if loading_model:
-        agent.loading_model("./pokerbot/pokerbot/agent/models/{}_model.h5"
-                            .format(str(opponent_cls.__name__)))
+    # path for saving or loading models
+    path = "./pokerbot/pokerbot/agent/models/"
 
     # create opponent
     opponent = opponent_cls(starting_stack, 'Villain')
+
+    # create agent
+    agent = agent_cls(starting_stack, "Q-Lee",
+                      learning_rate=learning_rate,
+                      gamma=gamma,
+                      epsilon_decay=epsilon_decay,
+                      starting_epsilon=starting_epsilon,
+                      epsilon_min=epsilon_min)
+
+    # load existing knowledge
+    if loading_model:
+        agent.loading_model(path + "{}_vs_{}_model.h5"
+                            .format(type(agent).__name__,
+                                    type(opponent).__name__))
 
     # create the environment
     env = HuGame(max_nb_hands, big_blind, agent, opponent, is_fixed_limit)
@@ -204,14 +209,12 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
                 state = np.reshape(np.array(state), [1, 15])
                 # reinitialize variable
                 waiting_for_first_action = True
+                # if memory is big enough, replay a batch of examples
+                # and learn from them
+                if len(agent.memory) > batch_size:
+                    agent.replay(batch_size)
             else:
                 state = next_state
-
-            # if memory is big enough, replay a batch of examples
-            # and learn from them
-            # this piece is also responsible for the decay in epsilon
-            if len(agent.memory) > batch_size:
-                agent.replay(batch_size)
 
         # epsilon decay
         agent.decay_epsilon()
@@ -226,8 +229,10 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
                training_time]
 
     # save new knowledge
-    agent.saving_model("./pokerbot/pokerbot/agent/models/{}_model.h5".format(
-        str(opponent_cls.__name__)))
+    if saving_model:
+        agent.saving_model(path + "{}_vs_{}_model.h5"
+                           .format(type(agent).__name__,
+                                   type(opponent).__name__))
 
     return agent, env, results
 
