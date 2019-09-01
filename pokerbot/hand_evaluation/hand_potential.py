@@ -1,8 +1,8 @@
 
 import random
 
-from pokerbot.flow_control.deck import Deck
-from pokerbot.hand_evaluation.hand import Hand, compare_two_hands
+from ..flow_control.deck import Deck
+from ..hand_evaluation.hand import Hand, compare_two_hands
 
 
 # Estimate the ratio of winning games given the current state of the game

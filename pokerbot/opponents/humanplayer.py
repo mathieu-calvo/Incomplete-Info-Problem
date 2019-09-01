@@ -1,7 +1,7 @@
 
 import logging
 
-from pokerbot.flow_control.player import Player
+from ..flow_control.player import Player
 from ..utils import action_input, amount_input
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',

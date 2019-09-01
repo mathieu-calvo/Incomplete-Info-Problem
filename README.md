@@ -63,3 +63,9 @@ position, players' stacks (number of chips), hand value and hand potential, oppo
 * Maximize quality of decisions knowing that good decisions could often lead
  to losses, and especially because our agent will not necessarily know what was the quality of its
 decisions (because only the showdown reveals the full state of the environment)
+
+# How to run experiments
+
+    import pokerbot.pokerbot as pk
+    agent, env, results = pk.run(nb_episodes=10, epsilon_decay=0.995)
+    fig, ax = pk.visualize_results(agent, env, results)

@@ -3,10 +3,11 @@ import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import pickle
 import time
 from datetime import timedelta
 
-from .dqnagent import DQNAgent
+from .dqnagent import DQNAgent, DRQNAgent
 from ..flow_control.hugame import HuGame
 from ..opponents.humanplayer import HumanPlayer
 from ..opponents.randomplayer import RandomPlayer
@@ -16,7 +17,7 @@ from ..opponents.fixedpolicyplayer import StartingHandPlayer, \
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.DEBUG)
 
-# agent, env, results = run(nb_episodes=10, starting_epsilon=0.0)
+# agent, env, results = run(nb_episodes=10, epsilon_decay=0.995)
 # fig, ax = visualize_results(agent, env, results)
 
 # nb_episodes=500
@@ -33,6 +34,32 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
 # loading_model=True
 # opponent_cls=FishPlayer
 
+# nb episodes - epsilon decay
+# 1000 - 0.995
+# 5000 - 0.999
+# 10000 - 0.9995
+# 50000 - 0.9999
+# 100000 - 0.9995
+# ...
+
+
+def pickle_memory(agent):
+    filename = 'agent_memory'
+    outfile = open(filename, 'wb')
+    pickle.dump(agent.memory, outfile)
+    outfile.close()
+
+
+def rescale_reward(reward_to_scale, starting_stack):
+    """
+    Rescale state by using min-max normalization
+
+    Args: reward_to_scale (int)
+
+    Returns: scaled_reward (float) - belongs to [-1, 1] interval
+    """
+    return reward_to_scale / starting_stack
+
 
 def rescale_state(state_to_scale, starting_stack):
     """
@@ -43,17 +70,15 @@ def rescale_state(state_to_scale, starting_stack):
     Returns: scaled_state (list)
     """
     scaled_state = state_to_scale.copy()
-    # stacks
-    for i in [0, 1]:
-        scaled_state[i] = (state_to_scale[i] - 0) / (starting_stack - 0)
+    # stacks and pot size
+    for i in [0, 1, -1]:
+        scaled_state[i] = (state_to_scale[i] - 0) / (starting_stack * 2 - 0)
     # cards
     for k in range(3, 10):
         scaled_state[k] = (state_to_scale[k] - 0) / (52 - 0)
     # action sequences
     for j in range(10, 14):
         scaled_state[j] = (state_to_scale[j] - 0) / (24 - 0)
-    # pot size
-    scaled_state[-1] = (state_to_scale[-1] - 0) / (starting_stack * 2 - 0)
     return scaled_state
 
 
@@ -62,7 +87,7 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
         learning_rate=0.1, gamma=0.8, epsilon_decay=0.995,
         starting_epsilon=1.0, epsilon_min=0.0,
         loading_model=True, saving_model=True,
-        agent_cls=DQNAgent, opponent_cls=FishPlayer):
+        agent_cls=DRQNAgent, opponent_cls=FishPlayer):
 
     # path for saving or loading models
     path = "./pokerbot/pokerbot/agent/models/"
@@ -71,7 +96,7 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
     opponent = opponent_cls(starting_stack, 'Villain')
 
     # create agent
-    agent = agent_cls(starting_stack, "Q-Lee",
+    agent = agent_cls(starting_stack, "Hero",
                       learning_rate=learning_rate,
                       gamma=gamma,
                       epsilon_decay=epsilon_decay,
@@ -129,7 +154,7 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
         # rescale state - pre-processing stage
         state = rescale_state(state, starting_stack)
         # reshape state into something ANN understands
-        state = np.reshape(np.array(state), [1, 15])
+        state = np.reshape(np.array(state), [15])
 
         while not env.game_over:
 
@@ -172,14 +197,24 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
             next_state, reward, game_done, hand_over, info = \
                 env.step(str_action)
 
-            # rescale state - pre-processing stage
+            # rescale state and reward - pre-processing stage
             next_state = rescale_state(next_state, starting_stack)
+            reward = rescale_reward(reward, starting_stack)
 
             # reshape state into something ANN understands
-            next_state = np.reshape(np.array(next_state), [1, 15])
+            next_state = np.reshape(np.array(next_state), [15])
 
             # add sequence to memory
-            agent.remember(state, action, reward, next_state, hand_over)
+            if agent_cls == DQNAgent:
+                agent.remember(state, action, reward, next_state, hand_over)
+            elif agent_cls == DRQNAgent:
+                # add to the attribute list
+                agent.add_to_memory_sequence(state)
+                # remember the sequence
+                agent.remember_sequence(action,
+                                        reward,
+                                        next_state,
+                                        hand_over)
 
             # if done print relevant metrics and exit episode
             if game_done:
@@ -201,20 +236,52 @@ def run(nb_episodes=500, starting_stack=1000, big_blind=20,
             if hand_over:
                 # discard all hands where opponent fold right away
                 # TODO: is it the right thing to do?
-                while hand_over:
+                while hand_over and env.hand_number < env.max_nb_hands:
                     state, hand_over = env.initial_step()
+                # check whether last hand was dealt and is over,
+                # if so end episode
+                if hand_over and env.hand_number >= env.max_nb_hands:
+
+                    env.game_over = True
+
+                    total_reward = env.player_hero.stack - starting_stack
+                    print("episode: {}/{}, nb_hands: {}, e: {:.3}, reward: {}"
+                          .format(e + 1, nb_episodes, env.hand_number,
+                                  agent.epsilon, total_reward))
+
+                    # performance metrics - one per episode
+                    total_reward_list.append(total_reward)
+                    nb_hands_list.append(env.hand_number)
+                    epsilon_list.append(agent.epsilon)
+                    action_type_list_of_lists.append(action_type_list)
+                    first_action_type_list_of_lists.append(
+                        first_action_type_list)
+
+                    break
                 # rescale state - pre-processing stage
                 state = rescale_state(state, starting_stack)
                 # reshape state into something ANN understands
-                state = np.reshape(np.array(state), [1, 15])
+                state = np.reshape(np.array(state), [15])
                 # reinitialize variable
                 waiting_for_first_action = True
-                # if memory is big enough, replay a batch of examples
-                # and learn from them
+                # recurrent agent specific tasks
+                if agent_cls == DRQNAgent:
+                    # reset memory sequence
+                    agent.reset_memory_sequence()
+                    # add state to the attribute list
+                    agent.add_to_memory_sequence(state)
+                # if memory is big enough, after each hand, replay
+                # a batch of examples with current length of sequence and
+                # learn from them
                 if len(agent.memory) > batch_size:
-                    agent.replay(batch_size)
+                    agent.replay(batch_size, mode_current_length=True)
             else:
                 state = next_state
+
+        # if memory is big enough, after each episode, replay a batch of
+        # examples with a drawn length of sequence and learn from them
+        # if len(agent.memory) > batch_size:
+        #     agent.replay(batch_size, mode_current_length=False)
 
         # epsilon decay
         agent.decay_epsilon()
@@ -266,11 +333,12 @@ def visualize_results(agent, env, results):
     # create subplots
     fig, ax = plt.subplots(2, 2)
     # title with import number of parameters
-    fig.suptitle("Training versus {} "
+    fig.suptitle("Training {} versus {} "
                  "\nLearning rate {} - Discount factor {} - Epsilon decay {} -"
                  " Starting stack {} - Big blind {} - Max nb hands {}"
                  "\nEpisodes: {} - Hands {} - Actions {} - Time {}"
-                 .format(type(env.player_villain).__name__,
+                 .format(type(env.player_hero).__name__,
+                         type(env.player_villain).__name__,
                          agent.learning_rate,
                          agent.gamma,
                          agent.epsilon_decay,

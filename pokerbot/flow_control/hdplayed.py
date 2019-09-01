@@ -3,7 +3,7 @@ import logging
 from itertools import cycle
 
 from ..hand_evaluation.hand import Hand, compare_two_hands
-from ..agent.dqnagent import DQNAgent
+from ..agent.dqnagent import DQNAgent, DRQNAgent
 from ..opponents.humanplayer import HumanPlayer
 from ..globals import SEQUENCE_ACTIONS_ID
 
@@ -325,7 +325,7 @@ class HdPlayed(object):
             # attribute winnings to other player
             other_player = self.action_cycle.__next__()
             other_player.win_pot(self.pot_size)
-            self.update_hand_histories('{} wins the pot: +{}$'
+            self.update_hand_histories('{} wins the pot: {}$'
                                        .format(other_player.name,
                                                self.pot_size))
             # update reward
@@ -529,7 +529,7 @@ class HdPlayed(object):
         self._update_possible_actions()
 
         # let the opponent play if it is its turn to
-        if not isinstance(self.active_player, DQNAgent):
+        if not isinstance(self.active_player, (DQNAgent, DRQNAgent)):
             # show information if user is human
             if isinstance(self.active_player, HumanPlayer):
                 if self.is_action_on_bb:
@@ -603,7 +603,7 @@ class HdPlayed(object):
         self._update_possible_actions()
 
         # let the opponent play if it is its turn to
-        if not isinstance(self.active_player, DQNAgent):
+        if not isinstance(self.active_player, (DQNAgent, DRQNAgent)):
 
             # show information if user is human
             if isinstance(self.active_player, HumanPlayer):

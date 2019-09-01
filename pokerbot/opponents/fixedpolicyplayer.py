@@ -2,8 +2,8 @@
 import logging
 import numpy as np
 
-from pokerbot.flow_control.player import Player
-from pokerbot.hand_evaluation.hand_potential import estimate_win_rate
+from ..flow_control.player import Player
+from ..hand_evaluation.hand_potential import estimate_win_rate
 from ..globals import PRE_FLOP_WINNING_PROB
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
@@ -75,18 +75,44 @@ class StartingHandPlayer(Player):
             p = PRE_FLOP_WINNING_PROB[simp_pre_flop_hand]
             logging.debug('{} has {}'.format(self.name, simp_pre_flop_hand))
             logging.debug('p = {}'.format(p))
+            # # select actions based on win rate at the beginning
+            # if p < 0.5:
+
+            #     if 'check' in actions:
+            #         choice = 'check'
+            #     else:
+            #         choice = 'fold'
+            # else:
+            #     if 'raise' in actions:
+            #         choice = np.random.choice(['raise', 'call'], 1,
+            #                                   p=[p, 1-p])[0]
+            #     elif 'bet' in actions:
+            #         choice = np.random.choice(['bet', 'check'], 1,
+            #                                   p=[p, 1-p])[0]
+            #     elif ['call', 'fold'] == actions:
+            #         choice = 'call'
+            #     else:
+            #         choice = 'all-in'
+            # select actions based on win rate at the beginning
             if p < 0.5:
                 if 'check' in actions:
                     choice = 'check'
                 else:
                     choice = 'fold'
+            elif p < 0.6:
+                if 'call' in actions:
+                    choice = 'call'
+                elif 'bet' in actions:
+                    choice = 'bet'
+                elif ['call', 'fold'] == actions:
+                    choice = 'call'
+                else:
+                    choice = 'all-in'
             else:
                 if 'raise' in actions:
-                    choice = np.random.choice(['raise', 'call'], 1,
-                                              p=[p, 1-p])[0]
+                    choice = 'raise'
                 elif 'bet' in actions:
-                    choice = np.random.choice(['bet', 'check'], 1,
-                                              p=[p, 1-p])[0]
+                    choice = 'bet'
                 elif ['call', 'fold'] == actions:
                     choice = 'call'
                 else:

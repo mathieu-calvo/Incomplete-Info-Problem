@@ -18,5 +18,5 @@ from .opponents.humanplayer import HumanPlayer
 from .opponents.fixedpolicyplayer import StartingHandPlayer, \
     StrengthHandPlayer, FishPlayer
 
-from .agent.dqnagent import DQNAgent
+from .agent.dqnagent import DQNAgent, DRQNAgent
 from .agent.training import run, visualize_results
