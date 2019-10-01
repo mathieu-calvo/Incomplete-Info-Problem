@@ -8,6 +8,7 @@ import time
 from datetime import timedelta
 
 from .dqnagent import DQNAgent, DRQNAgent
+from ..flow_control.deck import Deck
 from ..flow_control.hugame import HuGame
 from ..opponents.humanplayer import HumanPlayer
 from ..opponents.randomplayer import RandomPlayer
@@ -83,11 +84,11 @@ def rescale_state(state_to_scale, starting_stack):
 
 
 def run_hands(nb_episodes=500, starting_stack=1000, big_blind=20,
-        is_fixed_limit=True, batch_size=25,
-        learning_rate=0.1, gamma=0.8, epsilon_decay=0.995,
-        starting_epsilon=1.0, epsilon_min=0.0,
-        loading_model=True, saving_model=True,
-        agent_cls=DRQNAgent, opponent_cls=FishPlayer):
+              is_fixed_limit=True, batch_size=25,
+              learning_rate=0.1, gamma=0.8, epsilon_decay=0.995,
+              starting_epsilon=1.0, epsilon_min=0.0,
+              loading_model=True, saving_model=True,
+              agent_cls=DRQNAgent, opponent_cls=FishPlayer):
     """ Method to train deep learning agent given a series of parameters.
     An epoch is a hand.
     
@@ -118,7 +119,13 @@ def run_hands(nb_episodes=500, starting_stack=1000, big_blind=20,
                                     type(opponent).__name__))
 
     # create the environment
-    env = HuGame(max_nb_hands, big_blind, agent, opponent, is_fixed_limit)
+    env = HdPlayed(hero_is_big_blind,
+                   player_hero,
+                   player_villain,
+                   big_blind,
+                   is_fixed_limit,
+                   Deck().deal_cards(9),
+                   0)
 
     # total reward for episode
     total_reward = 0
@@ -147,6 +154,7 @@ def run_hands(nb_episodes=500, starting_stack=1000, big_blind=20,
 
         # reset environment
         env.reset()
+        
         # and get initial state as row vector
         state, hand_over = env.initial_step()
         # if hand is over, need to do initial step again
@@ -301,7 +309,7 @@ def run_hands(nb_episodes=500, starting_stack=1000, big_blind=20,
 
     # save new knowledge
     if saving_model:
-        agent.saving_model(path + "{}_vs_{}_model.h5"
+        agent.saving_model(path + "hands_{}_vs_{}_model.h5"
                            .format(type(agent).__name__,
                                    type(opponent).__name__))
 

@@ -14,3 +14,6 @@ Poker_agent.docx
 
 # guidelines for dissertation
 /Dissertation guidelines/
+
+# jupyter notebook
+*.ipynb_checkpoints
