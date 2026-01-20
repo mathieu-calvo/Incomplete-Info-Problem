@@ -67,5 +67,5 @@ decisions (because only the showdown reveals the full state of the environment)
 # How to run experiments
 
     import pokerbot.pokerbot as pk
-    agent, env, results = pk.run(nb_episodes=10, epsilon_decay=0.995)
+    agent, env, results = pk.run_games(nb_episodes=10, epsilon_decay=0.995)
     fig, ax = pk.visualize_results(agent, env, results)

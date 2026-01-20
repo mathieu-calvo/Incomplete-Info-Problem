@@ -2,10 +2,13 @@
 import logging
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pickle
 import time
 from datetime import timedelta
+import os
 
 from .dqnagent import DQNAgent, DRQNAgent
 from ..flow_control.deck import Deck
@@ -14,6 +17,7 @@ from ..opponents.humanplayer import HumanPlayer
 from ..opponents.randomplayer import RandomPlayer
 from ..opponents.fixedpolicyplayer import StartingHandPlayer, \
     StrengthHandPlayer, FishPlayer
+from ..globals import MODELS_DIR
 
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
                     level=logging.DEBUG)
@@ -99,7 +103,7 @@ def run_hands(nb_episodes=500, starting_stack=1000, big_blind=20,
     """
     
     # path for saving or loading models
-    path = "./pokerbot/pokerbot/agent/models/"
+    path = MODELS_DIR
 
     # create opponent
     opponent = opponent_cls(starting_stack, 'Villain')
@@ -114,9 +118,9 @@ def run_hands(nb_episodes=500, starting_stack=1000, big_blind=20,
 
     # load existing knowledge
     if loading_model:
-        agent.loading_model(path + "hands_{}_vs_{}_model.h5"
+        agent.loading_model(os.path.join(path, "hands_{}_vs_{}_model.h5"
                             .format(type(agent).__name__,
-                                    type(opponent).__name__))
+                                    type(opponent).__name__)))
 
     # create the environment
     env = HdPlayed(hero_is_big_blind,
@@ -309,9 +313,9 @@ def run_hands(nb_episodes=500, starting_stack=1000, big_blind=20,
 
     # save new knowledge
     if saving_model:
-        agent.saving_model(path + "hands_{}_vs_{}_model.h5"
+        agent.saving_model(os.path.join(path, "hands_{}_vs_{}_model.h5"
                            .format(type(agent).__name__,
-                                   type(opponent).__name__))
+                                   type(opponent).__name__)))
 
     return agent, env, results
 
@@ -330,7 +334,7 @@ def run_games(nb_episodes=500, starting_stack=1000, big_blind=20,
         results (list of lists): results of experiments
     """
     # path for saving or loading models
-    path = "./pokerbot/pokerbot/agent/models/"
+    path = MODELS_DIR
 
     # create opponent
     opponent = opponent_cls(starting_stack, 'Villain')
@@ -345,9 +349,9 @@ def run_games(nb_episodes=500, starting_stack=1000, big_blind=20,
 
     # load existing knowledge
     if loading_model:
-        agent.loading_model(path + "{}_vs_{}_model.h5"
+        agent.loading_model(os.path.join(path, "{}_vs_{}_model.h5"
                             .format(type(agent).__name__,
-                                    type(opponent).__name__))
+                                    type(opponent).__name__)))
 
     # create the environment
     env = HuGame(max_nb_hands, big_blind, agent, opponent, is_fixed_limit)
@@ -537,9 +541,9 @@ def run_games(nb_episodes=500, starting_stack=1000, big_blind=20,
 
     # save new knowledge
     if saving_model:
-        agent.saving_model(path + "{}_vs_{}_model.h5"
+        agent.saving_model(os.path.join(path, "{}_vs_{}_model.h5"
                            .format(type(agent).__name__,
-                                   type(opponent).__name__))
+                                   type(opponent).__name__)))
 
     return agent, env, results
 

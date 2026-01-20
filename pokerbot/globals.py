@@ -1,6 +1,14 @@
 
 import csv
+import os
 from itertools import islice
+
+# Get the directory of the pokerbot package
+POKERBOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# File paths
+DATAFILES_DIR = os.path.join(POKERBOT_DIR, 'pokerbot', 'datafiles')
+MODELS_DIR = os.path.join(POKERBOT_DIR, 'pokerbot', 'agent', 'models')
 
 # come up with a list of all the straights possible with a 52-card deck
 STRAIGHTS = [set(islice(range(2, 15), k, k + 5, 1))
@@ -26,8 +34,8 @@ HUMAN_READABLE_RANKINGS = {1: "High card", 2: "One pair", 3: "Two pairs",
 
 # Probability that your private hand (two cards) will end up being the best
 # hand - from http://www.natesholdem.com/pre-flop-odds.php#Qx
-reader = csv.reader(open('pokerbot/pokerbot/datafiles/'
-                         'preflop_prob_best_hand_showdown.csv', 'r'))
+reader = csv.reader(open(os.path.join(DATAFILES_DIR,
+                                      'preflop_prob_best_hand_showdown.csv'), 'r'))
 PRE_FLOP_WINNING_PROB = {}
 for row in reader:
     k, v = row
