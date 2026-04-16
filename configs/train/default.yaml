@@ -1,0 +1,18 @@
+defaults:
+  - _self_
+  - game: hulhe
+  - algo: deepcfr
+
+seed: 0
+iters: 50
+eval_every: 5
+eval_hands: 10_000
+checkpoint_dir: checkpoints/local
+wandb:
+  enabled: false
+  project: incomplete-info-problem
+  entity: null
+hf:
+  enabled: false
+  repo_id: null          # e.g. "mathieu-calvo/iip-hulhe"
+  tag_prefix: "ckpt"

@@ -1,71 +1,115 @@
-# Incomplete Info Problem
-This research project will aim at tackling an incomplete information game using reinforcement
-learning techniques.
+# Incomplete-Info-Problem
 
-In this project, we initially aim at targeting arguably the most popular incomplete information
-card game at the moment, the very famous game of poker. Specifically, we will only consider its
-most common variant, also known as the Limit Texas Hold’em Poker game
+A heads-up Limit Texas Hold'em bot trained with **Deep CFR** and fine-tuned with **PPO self-play**, plus a **Streamlit Cloud** app where humans play the bot and contribute hands to a nightly retraining pipeline.
 
-> “The challenges introduced by poker are many. The game involves a number of
- forms of
-**uncertainty**, including stochastic dynamics from a shuffled deck, 
-**imperfect 
-information** due to
-the opponent’s private cards, and, finally, an **unknown opponent**. These 
-uncertainties are
-individually difficult and together the difficulties only escalate. A related challenge is the
-problem of **folded hands**, which amount to partial observations of the 
-opponent’s decision
-making contexts. (…). A third key challenge is the **high variance of 
-payoffs**, also known as luck.
-This makes it difficult for a program to even assess its performance over short periods of time.
-To aggravate this difficulty, play against human opponents is necessarily limited. If no more than
-two or three hundred hands are to be played in total, opponent modelling must be effective using
-only very small amounts of data. Finally, Texas hold’em is a very large game. It has on the order
-of 10^18 states, which makes even straightforward calculations, such as best
- response, nontrivial.”
-[Southey, F., Bowling, M. P., Larson, B., Piccione, C., Burch, N., Billings, D., & Rayner,
-C. (2012). Bayes' bluff: Opponent modelling in poker. arXiv preprint 
-arXiv:1207.1411]
+> Successor to the original DQN/DRQN prototype. The prior TF/Keras implementation and fixed-policy evaluation have been replaced by a theoretically-grounded solver (Deep CFR → regret matching → approximate Nash) + a human-in-the-loop improvement cycle.
 
-# Basics of Texas Hold'em poker
-[How to play the game of poker: blinds, betting rounds, showdown, etc...](https://www.pokernews.com/poker-rules/texas-holdem.htm)
+## Highlights
 
-[Poker hand rankings](https://poker.partypoker.com/en/how-to-play/hand-rankings)
+- **Deep CFR** — neural advantage + strategy networks trained via external-sampling MCCFR (Brown et al., 2019). Converges toward a Nash equilibrium strategy.
+- **PPO self-play league** — warm-started from the Deep CFR average strategy, opponents sampled from an ELO-weighted checkpoint pool.
+- **Fast engine** — clean state-machine HULHE, `treys`-backed 7-card ranker, Monte-Carlo equity, 169-bucket preflop encoder.
+- **Human-in-the-loop** — every hand you play on the web app is saved to Supabase; a nightly GitHub Actions job retrains the bot and publishes a new checkpoint on Hugging Face Hub after passing an eval gate.
+- **Streamlit Cloud** — one-click deploy from this repo; the app auto-pulls the latest bot version on boot.
 
-# Project scope
-In order to limit the complexity of this research project, we will proceed to a few simplifications.
-* We will limit our analysis to one versus one poker games, also known as 
-“heads-up” poker games.
-* Our poker-playing agent will specialize in playing games where the initial
- stakes do not
-change over the course of the session, also known as “cash-games”.
-* We will assume that only a limited number of bet sizes are possible at 
-each point in time
-* We will assume that each session ends after a given number of hands.
-* And most importantly, the initial opponent of our poker-playing agent will
- be limited to a simple reflex-agent that follows a fixed policy
- 
-# The challenges
-This research project will entail several challenges:
-* Write a poker game framework programmatically, including flow control, 
-card shuffling
-and the sequence of events.
-* Retrieve the poker game statistical knowledge, with hand values plus hand 
-potentials
-(forward-looking) at each betting round based on available information.
-* Design a model of opponent’s possible range of hands given its action 
-during the hand and during the session. This will involve a matrix of all possible combinations (excluding
-impossible ones, inferred from visible cards). This should allow for a probability
-estimation of our opponent bluffing.
-* Design a decision process model that take many factors into account: 
-position, players' stacks (number of chips), hand value and hand potential, opponent modelling
-* Maximize quality of decisions knowing that good decisions could often lead
- to losses, and especially because our agent will not necessarily know what was the quality of its
-decisions (because only the showdown reveals the full state of the environment)
+## Repo layout
 
-# How to run experiments
+```
+configs/                 Hydra configs (game, algo, train)
+src/iip/
+  engine/                HULHE + Kuhn state machines, cards, deck
+  eval/                  treys-backed ranker + MC equity + 169-bucket preflop
+  features/              infoset -> fixed-size tensor
+  agents/                base protocol, random, fixed-policy, Deep CFR, PPO
+  train/                 trainers (Deep CFR, PPO), league, reservoir buffers
+  metrics/               mbb/h, LBR exploitability
+  io/                    HF Hub + Supabase clients
+  cli.py                 `iip train | eval | play`
+app/                     Streamlit Cloud app (play vs bot + leaderboard + insights)
+scripts/                 nightly_retrain.py, evaluate_checkpoint.py
+tests/                   pytest suites (engine, eval, agents, metrics)
+notebooks/               run_experiments.ipynb
+.github/workflows/       CI + nightly retrain
+```
 
-    import pokerbot.pokerbot as pk
-    agent, env, results = pk.run_games(nb_episodes=10, epsilon_decay=0.995)
-    fig, ax = pk.visualize_results(agent, env, results)
+## Quickstart
+
+```bash
+python -m venv .venv
+source .venv/Scripts/activate   # Windows: .venv/Scripts/activate
+pip install -e ".[dev,app,train]"
+
+# Verify the build.
+pytest -q
+
+# Train a small Deep CFR checkpoint on HULHE (fast smoke run).
+iip train --game hulhe --iters 3 --traversals 1000 --output checkpoints/local/deepcfr.pt
+
+# Evaluate vs baselines + LBR.
+iip eval --checkpoint checkpoints/local/deepcfr.pt --hands 5000 --opponents fish,strength,random --with-lbr
+
+# Play a few hands in the terminal.
+iip play --checkpoint checkpoints/local/deepcfr.pt --hands 3
+```
+
+For real results expect `iters >= 50` and `traversals >= 10_000` — a short Kuhn convergence test lives in `tests/agents/test_deepcfr_kuhn.py` so you can verify the solver is wired correctly before burning HULHE compute.
+
+## Streamlit app
+
+Local:
+```bash
+streamlit run app/streamlit_app.py
+```
+
+### Deploy to Streamlit Cloud
+
+1. Push this repo to GitHub.
+2. In Streamlit Cloud, **New app → Deploy from repo**, point at `app/streamlit_app.py`.
+3. In **Secrets**, set:
+   ```toml
+   HF_REPO_ID = "your-username/iip-hulhe"
+   HF_TOKEN   = "hf_..."
+   SUPABASE_URL = "https://xxxx.supabase.co"
+   SUPABASE_KEY = "anon-key"         # service-role key only for retrain; app uses anon
+   ```
+4. In Supabase, create the `hands` table using the schema in `src/iip/io/supabase_client.py`.
+5. The app loads the latest checkpoint on boot. If HF isn't configured it falls back to `checkpoints/local/deepcfr.pt`.
+
+## Human-in-the-loop retraining
+
+The nightly GitHub Actions job (`.github/workflows/nightly-retrain.yml`) does:
+
+1. Pulls the previous checkpoint from HF Hub.
+2. Fetches new hands from Supabase via `HandStore`.
+3. Runs `scripts/nightly_retrain.py` — PPO self-play with baselines + human trajectory logging.
+4. Runs `scripts/evaluate_checkpoint.py` — head-to-head + LBR; fails the run if the new bot regresses vs previous by more than `--regression-margin-mbb`.
+5. On pass: uploads the new checkpoint tagged `ckpt-YYYYMMDD-HHMMSS` to HF Hub and commits `reports/latest.json` to the repo. The app picks up the new version on its next cold boot.
+
+Required secrets in GitHub: `HF_TOKEN`, `HF_REPO_ID`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`.
+
+## Algorithmic notes
+
+- **Deep CFR**: two MLPs per player — advantage (`V_p(I, a)`) regressed on sampled counterfactual regrets, strategy (`π̄(I)`) regressed on sampled strategies from a reservoir buffer with linear-CFR weighting. Regret matching at each decision node produces the behavioural strategy.
+- **Feature encoding** (`src/iip/features/infoset.py`): one-hot 169-bucket preflop id + board rank multi-hot + suit summary + street + pot/stacks + contributions + raises + position + legal-action mask. 200-dim float vector.
+- **PPO**: standard clip objective with GAE, masked softmax over legal actions, warm-started from the Deep CFR strategy net.
+- **League** (`src/iip/train/league.py`): JSON-persisted ELO + ELO-softmax sampling of opponents, so tough checkpoints are picked more often.
+- **Exploitability**: LBR (Lisý & Bowling, 2017) gives a cheap exploitability lower bound; adequate as a regression guard between checkpoints.
+
+## Testing
+
+```bash
+pytest -q
+```
+
+Runs engine/ rules + showdown, eval/ ranker + MC equity property tests, agents/ baselines sanity, Deep CFR convergence on Kuhn (smoke), mbb/h + LBR smoke.
+
+## References
+
+- Brown, N., Lerer, A., Gross, S., Sandholm, T. (2019). *Deep Counterfactual Regret Minimization.* ICML.
+- Heinrich, J., Silver, D. (2016). *Deep Reinforcement Learning from Self-Play in Imperfect-Information Games.* (context for NFSP alternative path.)
+- Lisý, V., Bowling, M. (2017). *Equilibrium Approximation Quality of Current No-Limit Poker Bots.* (LBR.)
+- Southey et al. (2005). *Bayes' Bluff: Opponent Modelling in Poker.* (project motivation.)
+
+## License
+
+MIT.

@@ -1,0 +1,9 @@
+_target_: iip.engine.game.HULHE
+
+# Heads-up Limit Texas Hold'em — standard rules.
+small_blind: 1
+big_blind: 2
+small_bet: 2        # used preflop + flop
+big_bet: 4          # used turn + river
+max_raises_per_round: 4
+starting_stack: 200 # 100 big blinds; irrelevant for limit equilibria but used for mbb/h scoring

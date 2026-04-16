@@ -1,0 +1,4 @@
+_target_: iip.engine.kuhn.Kuhn
+
+# Classic 3-card Kuhn poker — used as a sanity harness for Deep CFR.
+ante: 1

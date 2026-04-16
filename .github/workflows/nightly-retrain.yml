@@ -1,0 +1,62 @@
+name: Nightly retrain
+
+on:
+  schedule:
+    - cron: "0 3 * * *"      # 03:00 UTC daily
+  workflow_dispatch: {}
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -e ".[train,app]"
+      - name: Pull previous checkpoint
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_REPO_ID: ${{ secrets.HF_REPO_ID }}
+        run: |
+          mkdir -p checkpoints/local
+          python -c "import os; from iip.io.hf_hub import latest_checkpoint_path; \
+            p = latest_checkpoint_path(os.environ['HF_REPO_ID'], 'strategy.pt'); \
+            import shutil; shutil.copy(p, 'checkpoints/local/prev.pt')" || echo "no previous checkpoint yet"
+      - name: Retrain with human hands
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          python scripts/nightly_retrain.py \
+            --previous checkpoints/local/prev.pt \
+            --output checkpoints/local/new.pt \
+            --iters 20 \
+            --traversals 5000
+      - name: Evaluate + gate
+        run: |
+          python scripts/evaluate_checkpoint.py \
+            --checkpoint checkpoints/local/new.pt \
+            --previous checkpoints/local/prev.pt \
+            --hands 20000 \
+            --output reports/latest.json
+      - name: Publish on pass
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_REPO_ID: ${{ secrets.HF_REPO_ID }}
+        run: |
+          python -c "from datetime import datetime, timezone; from iip.io.hf_hub import upload_checkpoint; \
+            upload_checkpoint('checkpoints/local/new.pt', '${HF_REPO_ID}', tag='ckpt-' + datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S'))"
+      - name: Commit report
+        run: |
+          git config user.name "iip-bot"
+          git config user.email "iip-bot@users.noreply.github.com"
+          git add reports/latest.json || true
+          git commit -m "chore(reports): nightly $(date -u +%F)" || true
+          git push || true

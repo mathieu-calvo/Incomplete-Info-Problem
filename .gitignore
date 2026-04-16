@@ -1,19 +1,51 @@
-Poker_agent.docx
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Notebook checkpoints
+*.ipynb_checkpoints
+
+# Editors
 .idea/
 .idea/*
+.vscode/
+*.swp
+.claude/
 
-# Compiled python modules.
-*.pyc
+# OS
+.DS_Store
+Thumbs.db
 
-# Setuptools distribution folder.
-/dist/
+# Project
+wandb/
+outputs/
+multirun/
+data/cache/
+checkpoints/local/
+.streamlit/secrets.toml
+.env
 
-# Python egg metadata, regenerated from source files by setuptools.
-/*.egg-info
-/*.egg
-
-# guidelines for dissertation
+# Legacy carry-overs
+Poker_agent.docx
 /Dissertation guidelines/
 
-# jupyter notebook
-*.ipynb_checkpoints
+# Legacy code kept until migration verified
+legacy/
