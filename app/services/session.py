@@ -8,11 +8,11 @@ sync; each Streamlit script re-run reads from the session.
 from __future__ import annotations
 
 import random
-import uuid
 from dataclasses import dataclass, field
 
 import streamlit as st
 
+from app.services.session_tracker import get_session_id
 from iip.agents.base import Agent
 from iip.engine.game import ActionType, HULHE, HULHEState
 
@@ -82,7 +82,7 @@ class PlaySession:
 def get_session(bot: Agent, bot_checkpoint: str) -> PlaySession:
     if _SESSION_KEY not in st.session_state:
         st.session_state[_SESSION_KEY] = PlaySession(
-            user_id=str(uuid.uuid4()),
+            user_id=get_session_id(),
             game=HULHE(),
             bot=bot,
             bot_checkpoint=bot_checkpoint,

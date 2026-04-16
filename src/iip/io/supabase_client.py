@@ -21,6 +21,20 @@ Table schema (create once in the Supabase SQL editor):
     create policy "inserts from app" on hands for insert with check (true);
     create policy "reads from service role" on hands for select using (true);
 
+    create table sessions (
+        id uuid primary key default gen_random_uuid(),
+        session_id text not null,
+        created_at timestamptz default now(),
+        user_agent text,
+        country text,
+        app_version text,
+        bot_checkpoint text
+    );
+    create index idx_sessions_created_at on sessions(created_at);
+    alter table sessions enable row level security;
+    create policy "inserts from app" on sessions for insert with check (true);
+    create policy "reads from service role" on sessions for select using (true);
+
 Environment variables:
     SUPABASE_URL
     SUPABASE_KEY (anon for inserts from the app; service-role for the retrain script)
@@ -76,6 +90,26 @@ class HandStore:
         payload["action_log"] = json.dumps(rec.action_log)
         payload["bot_policies"] = json.dumps(rec.bot_policies)
         resp = self._client.table("hands").insert(payload).execute()  # type: ignore[union-attr]
+        return resp.data[0] if resp.data else None
+
+    def log_session(
+        self,
+        session_id: str,
+        user_agent: str | None = None,
+        country: str | None = None,
+        app_version: str | None = None,
+        bot_checkpoint: str | None = None,
+    ) -> dict[str, Any] | None:
+        if not self.is_configured:
+            return None
+        payload = {
+            "session_id": session_id,
+            "user_agent": user_agent,
+            "country": country,
+            "app_version": app_version,
+            "bot_checkpoint": bot_checkpoint,
+        }
+        resp = self._client.table("sessions").insert(payload).execute()  # type: ignore[union-attr]
         return resp.data[0] if resp.data else None
 
     def fetch_hands_since(self, since: datetime | None = None, limit: int = 10_000) -> list[dict[str, Any]]:

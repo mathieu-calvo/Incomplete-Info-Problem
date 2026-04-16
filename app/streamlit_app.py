@@ -7,9 +7,12 @@ in `pages/1_Play.py`.
 
 from __future__ import annotations
 
+import os
+
 import streamlit as st
 
 from app.services.bot_loader import load_bot_and_meta
+from app.services.session_tracker import track_session_once
 
 
 st.set_page_config(page_title="Incomplete-Info-Problem — Play vs Bot", page_icon="🃏", layout="wide")
@@ -21,6 +24,19 @@ st.caption(
 )
 
 bot, meta = load_bot_and_meta()
+
+
+def _app_version() -> str:
+    try:
+        v = st.secrets.get("APP_VERSION")
+        if v:
+            return str(v)
+    except Exception:
+        pass
+    return os.environ.get("APP_VERSION", "dev")
+
+
+track_session_once(app_version=_app_version(), bot_checkpoint=meta.get("revision"))
 
 col1, col2 = st.columns(2)
 with col1:
