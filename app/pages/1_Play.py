@@ -53,14 +53,11 @@ if session.hand_over():
     if st.button("Next hand", type="primary"):
         session.start_new_hand()
         st.rerun()
-else:
-    if session.state.to_act == session.hero_seat:
-        action = render_action_bar(session.game, session.state)
-        if action is not None:
-            session.user_action(action)
-            st.rerun()
-    else:
-        st.caption("Bot is thinking…")
+elif session.state.to_act == session.hero_seat:
+    action = render_action_bar(session.game, session.state)
+    if action is not None:
+        session.user_action(action)
+        st.rerun()
 
 st.markdown("---")
 with st.expander("Hand log", expanded=False):
