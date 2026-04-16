@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 
 from iip.agents.base import ActionDist
-from iip.engine.game import ActionType, HULHE, HULHEState
+from iip.engine.game import HULHE, ActionType, HULHEState
 
 
 class RandomAgent:

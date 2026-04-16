@@ -65,7 +65,7 @@ class HULHEState:
     terminal: bool = False
     winnings: list[int] = field(default_factory=lambda: [0, 0])
 
-    def clone(self) -> "HULHEState":
+    def clone(self) -> HULHEState:
         return replace(
             self,
             hole_cards=[list(h) for h in self.hole_cards],

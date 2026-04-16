@@ -44,12 +44,12 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass, asdict
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 try:
-    from supabase import create_client, Client
+    from supabase import Client, create_client
     _HAS_SB = True
 except Exception:  # pragma: no cover
     _HAS_SB = False
@@ -117,6 +117,6 @@ class HandStore:
             return []
         q = self._client.table("hands").select("*").order("created_at", desc=False).limit(limit)  # type: ignore[union-attr]
         if since is not None:
-            q = q.gte("created_at", since.astimezone(timezone.utc).isoformat())
+            q = q.gte("created_at", since.astimezone(UTC).isoformat())
         resp = q.execute()
         return list(resp.data or [])

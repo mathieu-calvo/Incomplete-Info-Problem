@@ -6,7 +6,6 @@ import streamlit as st
 
 from iip.engine.game import HULHEState
 
-
 _SUIT_SYMBOL = {"s": "♠", "h": "♥", "d": "♦", "c": "♣"}
 
 

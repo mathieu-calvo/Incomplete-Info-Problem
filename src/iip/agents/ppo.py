@@ -15,10 +15,9 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn as nn
 
 from iip.agents.networks import MLP
-from iip.engine.game import ActionType, HULHE, HULHEState
+from iip.engine.game import HULHE, ActionType, HULHEState
 
 
 @dataclass
@@ -110,7 +109,7 @@ class PPOAgent:
         )
 
     @classmethod
-    def load(cls, path: str | Path, device: str = "cpu") -> "PPOAgent":
+    def load(cls, path: str | Path, device: str = "cpu") -> PPOAgent:
         blob = torch.load(str(path), map_location=device)
         agent = cls(
             feature_dim=blob["feature_dim"],

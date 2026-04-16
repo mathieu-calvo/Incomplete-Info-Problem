@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
-from iip.engine.game import ActionType, HULHE, HULHEState
+from iip.engine.game import HULHE, ActionType, HULHEState
 
 ActionDist = dict[ActionType, float]
 

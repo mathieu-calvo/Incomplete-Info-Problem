@@ -7,7 +7,6 @@ import streamlit as st
 
 from iip.io.supabase_client import HandStore
 
-
 st.set_page_config(page_title="Leaderboard", page_icon="🏆", layout="wide")
 st.title("Leaderboard")
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from iip.engine.game import ActionType, HULHE, HULHEState
+from iip.engine.game import HULHE, ActionType, HULHEState
 
 
 def render_action_bar(game: HULHE, state: HULHEState) -> ActionType | None:
@@ -16,7 +16,7 @@ def render_action_bar(game: HULHE, state: HULHEState) -> ActionType | None:
     }
     cols = st.columns(len(legal))
     clicked: ActionType | None = None
-    for col, action in zip(cols, legal):
+    for col, action in zip(cols, legal, strict=True):
         with col:
             if st.button(labels[action], key=f"act-{action.name}", use_container_width=True):
                 clicked = action

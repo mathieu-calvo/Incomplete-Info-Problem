@@ -25,8 +25,6 @@ def _average_payoff_vs_random(agent, n: int = 500, seed: int = 0) -> float:
     for _ in range(n):
         s = g.new_hand(rng=random.Random(rng.random()))
         while not s.terminal:
-            legal = [0, 1]  # Kuhn has 2 actions
-            feat = agent.strategy_net
             # Use strategy net for player 0, random for player 1.
             from iip.features.infoset import KuhnInfosetEncoder, legal_action_mask_kuhn
             enc = KuhnInfosetEncoder()

@@ -40,7 +40,7 @@ class League:
         total = sum(weights)
         r = rng.random() * total
         cum = 0.0
-        for e, w in zip(self.entries, weights):
+        for e, w in zip(self.entries, weights, strict=True):
             cum += w
             if r <= cum:
                 return e
@@ -66,6 +66,6 @@ class League:
         Path(path).write_text(json.dumps([e.__dict__ for e in self.entries], indent=2))
 
     @classmethod
-    def load(cls, path: str | Path) -> "League":
+    def load(cls, path: str | Path) -> League:
         data = json.loads(Path(path).read_text())
         return cls(entries=[LeagueEntry(**d) for d in data])

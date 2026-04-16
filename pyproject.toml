@@ -56,6 +56,9 @@ target-version = "py311"
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
 ignore = ["E501"]
 
+[tool.ruff.lint.per-file-ignores]
+"src/iip/cli.py" = ["B008"]
+
 [tool.black]
 line-length = 100
 target-version = ["py311"]

@@ -43,7 +43,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader, TensorDataset
 
 from iip.agents.deep_cfr import DeepCFRAgent, regret_matching
 from iip.agents.networks import MLP
@@ -145,10 +144,7 @@ class DeepCFRTrainer:
             # sample action according to sigma over legal
             legal_idx = [i for i, m in enumerate(mask) if m > 0]
             probs = np.array([sigma[i] for i in legal_idx], dtype=np.float64)
-            if probs.sum() == 0:
-                probs = np.ones_like(probs) / len(probs)
-            else:
-                probs = probs / probs.sum()
+            probs = np.ones_like(probs) / len(probs) if probs.sum() == 0 else probs / probs.sum()
             a = int(np.random.choice(legal_idx, p=probs))
             child_state = copy.deepcopy(state)
             self.adapter.step(child_state, a, rng=random.Random(rng.random()))

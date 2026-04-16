@@ -5,7 +5,7 @@ Key choices:
   seat 1 in the other half; the opponent is sampled from the league.
 - Rewards are per-hand net chip change in milli-big-blinds (mbb/hand). We assign the terminal
   reward to the last transition of the learner.
-- Advantage estimation uses GAE with γ close to 1 (hands are short so γ matters less).
+- Advantage estimation uses GAE with gamma close to 1 (hands are short so gamma matters less).
 - Standard PPO clip + entropy + value loss. Illegal actions are masked *before* softmax.
 """
 
@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 import torch

@@ -20,7 +20,7 @@ import numpy as np
 import torch
 
 from iip.agents.networks import MLP
-from iip.engine.game import ActionType, HULHE, HULHEState
+from iip.engine.game import HULHE, ActionType, HULHEState
 
 
 @dataclass
@@ -118,7 +118,7 @@ class DeepCFRAgent:
         )
 
     @classmethod
-    def load(cls, path: str | Path, device: str = "cpu") -> "DeepCFRAgent":
+    def load(cls, path: str | Path, device: str = "cpu") -> DeepCFRAgent:
         blob = torch.load(str(path), map_location=device)
         agent = cls(
             feature_dim=blob["feature_dim"],

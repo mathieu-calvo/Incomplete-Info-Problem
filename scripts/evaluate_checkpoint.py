@@ -16,8 +16,8 @@ from pathlib import Path
 
 from iip.agents.deep_cfr import DeepCFRAgent
 from iip.agents.fixed_policy import FishAgent, StartingHandAgent, StrengthHandAgent
-from iip.agents.random_agent import RandomAgent
 from iip.agents.ppo import PPOAgent
+from iip.agents.random_agent import RandomAgent
 from iip.engine.game import HULHE
 from iip.metrics.exploitability import local_best_response
 from iip.metrics.mbb import head_to_head_mbb

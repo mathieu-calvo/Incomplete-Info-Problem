@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from iip.io.supabase_client import HandRecord, HandStore
 from app.services.session import PlaySession
+from iip.io.supabase_client import HandRecord, HandStore
 
 
 def save_completed_hand(store: HandStore, session: PlaySession) -> HandRecord | None:

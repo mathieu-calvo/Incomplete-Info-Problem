@@ -22,7 +22,7 @@ from typing import Protocol
 
 import numpy as np
 
-from iip.engine.game import ActionType, HULHE, HULHEState
+from iip.engine.game import HULHE, ActionType, HULHEState
 from iip.engine.kuhn import Kuhn, KuhnAction, KuhnState
 from iip.features.infoset import (
     INFOSET_DIM_HULHE,

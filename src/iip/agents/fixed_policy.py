@@ -12,9 +12,8 @@ from __future__ import annotations
 import random
 
 from iip.agents.base import ActionDist
-from iip.engine.game import ActionType, HULHE, HULHEState, Street
-from iip.eval.equity import monte_carlo_equity
-from iip.eval.equity import starting_hand_bucket
+from iip.engine.game import HULHE, ActionType, HULHEState, Street
+from iip.eval.equity import monte_carlo_equity, starting_hand_bucket
 
 # A compact preflop win-rate table (hero vs random opponent), derived from MC.
 # We compute lazily the first time it's needed and cache in memory.
@@ -56,7 +55,7 @@ class StartingHandAgent:
 
     def act(self, game: HULHE, state: HULHEState, player: int) -> ActionType:
         dist = self.policy(game, state, player)
-        actions, probs = zip(*dist.items())
+        actions, probs = zip(*dist.items(), strict=True)
         # Deterministic argmax for this baseline.
         return actions[max(range(len(probs)), key=probs.__getitem__)]
 
@@ -88,7 +87,7 @@ class StrengthHandAgent:
 
     def act(self, game: HULHE, state: HULHEState, player: int) -> ActionType:
         dist = self.policy(game, state, player)
-        actions, probs = zip(*dist.items())
+        actions, probs = zip(*dist.items(), strict=True)
         return actions[max(range(len(probs)), key=probs.__getitem__)]
 
     def observe(self, game: HULHE, state: HULHEState, player: int) -> None:

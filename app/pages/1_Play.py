@@ -12,7 +12,6 @@ from app.services.hand_store import save_completed_hand
 from app.services.session import get_session
 from iip.io.supabase_client import HandStore
 
-
 st.set_page_config(page_title="Play vs Bot", page_icon="🃏", layout="wide")
 st.title("Play vs Bot")
 

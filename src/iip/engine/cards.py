@@ -8,8 +8,8 @@ ids 0..51 that line up with treys when its own encoding is consulted through ran
 from __future__ import annotations
 
 import random
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 SUITS: tuple[str, ...] = ("s", "h", "d", "c")
 RANKS: tuple[int, ...] = tuple(range(2, 15))

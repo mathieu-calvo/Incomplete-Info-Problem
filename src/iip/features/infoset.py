@@ -29,7 +29,7 @@ import numpy as np
 
 from iip.engine.cards import SUIT_INDEX
 from iip.engine.game import HULHE, HULHEState, Street
-from iip.engine.kuhn import KuhnAction, KuhnState
+from iip.engine.kuhn import KuhnState
 from iip.eval.equity import N_PREFLOP_BUCKETS, preflop_bucket_id
 
 INFOSET_DIM_HULHE: int = N_PREFLOP_BUCKETS + 13 + 4 + 4 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 3

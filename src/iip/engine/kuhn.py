@@ -34,7 +34,7 @@ class KuhnState:
     folded: int | None = None
     winnings: list[int] = field(default_factory=lambda: [0, 0])
 
-    def clone(self) -> "KuhnState":
+    def clone(self) -> KuhnState:
         return replace(self, cards=list(self.cards), history=list(self.history), winnings=list(self.winnings))
 
 

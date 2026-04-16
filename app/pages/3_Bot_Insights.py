@@ -9,7 +9,6 @@ import streamlit as st
 
 from app.services.bot_loader import load_bot_and_meta
 
-
 st.set_page_config(page_title="Bot Insights", page_icon="📈", layout="wide")
 st.title("Bot Insights")
 

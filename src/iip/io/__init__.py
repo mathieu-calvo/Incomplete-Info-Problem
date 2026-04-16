@@ -1,12 +1,12 @@
 """External IO: Hugging Face Hub (model weights) and Supabase (hand history)."""
 
-from iip.io.hf_hub import download_checkpoint, upload_checkpoint, latest_checkpoint_path
-from iip.io.supabase_client import HandStore, HandRecord
+from iip.io.hf_hub import download_checkpoint, latest_checkpoint_path, upload_checkpoint
+from iip.io.supabase_client import HandRecord, HandStore
 
 __all__ = [
-    "download_checkpoint",
-    "upload_checkpoint",
-    "latest_checkpoint_path",
-    "HandStore",
     "HandRecord",
+    "HandStore",
+    "download_checkpoint",
+    "latest_checkpoint_path",
+    "upload_checkpoint",
 ]

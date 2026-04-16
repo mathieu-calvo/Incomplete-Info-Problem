@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 
 from iip.agents.random_agent import RandomAgent
-from iip.engine.game import ActionType, HULHE, Street
+from iip.engine.game import HULHE, ActionType, Street
 
 
 def test_new_hand_posts_blinds():

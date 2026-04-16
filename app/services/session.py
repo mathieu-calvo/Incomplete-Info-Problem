@@ -14,7 +14,7 @@ import streamlit as st
 
 from app.services.session_tracker import get_session_id
 from iip.agents.base import Agent
-from iip.engine.game import ActionType, HULHE, HULHEState
+from iip.engine.game import HULHE, ActionType, HULHEState
 
 _SESSION_KEY = "iip_session"
 
