@@ -21,11 +21,16 @@ from iip.agents.deep_cfr import DeepCFRAgent
 log = logging.getLogger(__name__)
 
 
+_LOCAL_CANDIDATES = (
+    Path("checkpoints/local/deepcfr.pt"),
+    Path("checkpoints/local/deepcfr_hulhe.pt"),
+)
+
+
 @st.cache_resource(show_spinner="Loading bot checkpoint…")
 def load_bot_and_meta() -> tuple[DeepCFRAgent, dict[str, str]]:
     hf_repo = _get_secret("HF_REPO_ID")
     hf_token = _get_secret("HF_TOKEN")
-    local_fallback = Path("checkpoints/local/deepcfr.pt")
 
     if hf_repo and hf_token:
         os.environ["HF_TOKEN"] = hf_token
@@ -41,12 +46,13 @@ def load_bot_and_meta() -> tuple[DeepCFRAgent, dict[str, str]]:
         except Exception as e:  # pragma: no cover — fall back if HF is unreachable
             log.warning("HF checkpoint load failed: %s — falling back to local", e)
 
-    if local_fallback.exists():
-        return DeepCFRAgent.load(local_fallback), {
-            "source": "local",
-            "revision": "dev",
-            "algo": "deepcfr",
-        }
+    for local_path in _LOCAL_CANDIDATES:
+        if local_path.exists():
+            return DeepCFRAgent.load(local_path), {
+                "source": f"local:{local_path.name}",
+                "revision": "dev",
+                "algo": "deepcfr",
+            }
 
     raise RuntimeError(
         "No bot checkpoint found. Run `iip train --game hulhe --iters 5 --output checkpoints/local/deepcfr.pt` "
