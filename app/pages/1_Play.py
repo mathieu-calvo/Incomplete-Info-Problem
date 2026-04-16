@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
-import streamlit as st
+import sys
+from pathlib import Path
 
-from app.components.action_bar import render_action_bar
-from app.components.hand_replay import render_log
-from app.components.table import render_table
-from app.services.bot_loader import load_bot_and_meta
-from app.services.hand_store import save_completed_hand
-from app.services.session import get_session
-from iip.io.supabase_client import HandStore
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+import streamlit as st  # noqa: E402
+
+from app.components.action_bar import render_action_bar  # noqa: E402
+from app.components.hand_replay import render_log  # noqa: E402
+from app.components.table import render_table  # noqa: E402
+from app.services.bot_loader import load_bot_and_meta  # noqa: E402
+from app.services.hand_store import save_completed_hand  # noqa: E402
+from app.services.session import get_session  # noqa: E402
+from iip.io.supabase_client import HandStore  # noqa: E402
 
 st.set_page_config(page_title="Play vs Bot", page_icon="🃏", layout="wide")
 st.title("Play vs Bot")

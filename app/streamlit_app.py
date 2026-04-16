@@ -8,11 +8,17 @@ in `pages/1_Play.py`.
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
 
-import streamlit as st
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-from app.services.bot_loader import load_bot_and_meta
-from app.services.session_tracker import track_session_once
+import streamlit as st  # noqa: E402
+
+from app.services.bot_loader import load_bot_and_meta  # noqa: E402
+from app.services.session_tracker import track_session_once  # noqa: E402
 
 st.set_page_config(page_title="Incomplete-Info-Problem — Play vs Bot", page_icon="🃏", layout="wide")
 

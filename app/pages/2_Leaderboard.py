@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
-import pandas as pd
-import streamlit as st
+import sys
+from pathlib import Path
 
-from iip.io.supabase_client import HandStore
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+import pandas as pd  # noqa: E402
+import streamlit as st  # noqa: E402
+
+from iip.io.supabase_client import HandStore  # noqa: E402
 
 st.set_page_config(page_title="Leaderboard", page_icon="🏆", layout="wide")
 st.title("Leaderboard")

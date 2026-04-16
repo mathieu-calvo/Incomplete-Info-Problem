@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
-import streamlit as st
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
 
-from app.services.bot_loader import load_bot_and_meta
+import streamlit as st  # noqa: E402
+
+from app.services.bot_loader import load_bot_and_meta  # noqa: E402
 
 st.set_page_config(page_title="Bot Insights", page_icon="📈", layout="wide")
 st.title("Bot Insights")
