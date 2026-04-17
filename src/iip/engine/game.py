@@ -202,11 +202,15 @@ class HULHE:
         """True when the street's betting has equalized and both have acted."""
         if s.contributions[0] != s.contributions[1]:
             return False
-        # Special case: preflop, if SB just called, BB still has option to raise (the "BB option").
-        # Encoded below: BB option is granted iff we are preflop, no raise occurred (raises_this_street == 1),
-        # and the player who just called is the SB/dealer (player whose first action it was).
+        # On an unraised postflop street, a check by the first-to-act player does NOT close the
+        # round — the second player still has the option to bet or check-through. Preflop never
+        # hits this branch because the BB's blind counts as an open (raises_this_street >= 1).
+        if s.raises_this_street == 0:
+            actions_this_street = sum(1 for a in s.history if a.street is s.street)
+            if actions_this_street < 2:
+                return False
+        # Preflop BB option: after an unraised limp by the dealer, BB still gets to act.
         if s.street is Street.PREFLOP and s.raises_this_street == 1:
-            # The action that just happened was a CHECK_CALL by dealer; BB still gets option.
             last = s.history[-1]
             if last.type is ActionType.CHECK_CALL and last.player == _dealer_of(s):
                 return False

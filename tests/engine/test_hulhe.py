@@ -41,6 +41,28 @@ def test_legal_actions_cap_on_raises():
     assert ActionType.BET_RAISE not in legal or s.raises_this_street < 4
 
 
+def test_postflop_bb_check_does_not_skip_sb():
+    """When BB checks first postflop, SB must still get to act (bet or check-through)."""
+    g = HULHE()
+    s = g.new_hand(rng=random.Random(0))
+    # Preflop: SB limps, BB checks the option — advances to FLOP with no aggression.
+    g.step(s, ActionType.CHECK_CALL)  # SB calls BB
+    g.step(s, ActionType.CHECK_CALL)  # BB checks option
+    assert s.street is Street.FLOP
+    assert s.to_act == 1  # BB acts first postflop
+    # BB checks. Round must NOT close — SB still has the option to bet.
+    g.step(s, ActionType.CHECK_CALL)
+    assert s.street is Street.FLOP, "Street advanced before SB acted"
+    assert s.to_act == 0, "SB should now be to-act"
+    # SB bets — action returns to BB, street still FLOP.
+    g.step(s, ActionType.BET_RAISE)
+    assert s.street is Street.FLOP
+    assert s.to_act == 1
+    # BB calls — both have acted with equal contributions, advance to TURN.
+    g.step(s, ActionType.CHECK_CALL)
+    assert s.street is Street.TURN
+
+
 def test_full_random_game_terminates():
     g = HULHE()
     a = RandomAgent(rng=random.Random(1))
