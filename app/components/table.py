@@ -237,11 +237,26 @@ body { margin: 0; background: transparent; }
     0%, 100% { box-shadow: 0 0 0 0 rgba(80, 200, 120, 0.55); }
     50%      { box-shadow: 0 0 0 8px rgba(80, 200, 120, 0); }
 }
+.iip-last-action {
+    font-size: 0.8em;
+    font-weight: 600;
+    padding: 3px 12px;
+    border-radius: 10px;
+    background: rgba(255, 229, 122, 0.18);
+    color: #ffe57a;
+    border: 1px solid rgba(255, 229, 122, 0.45);
+    letter-spacing: 0.3px;
+}
 </style>
 """
 
 
-def render_table(state: HULHEState, hero_seat: int, reveal_bot: bool = False) -> None:
+def render_table(
+    state: HULHEState,
+    hero_seat: int,
+    reveal_bot: bool = False,
+    last_bot_action: str | None = None,
+) -> None:
     bot_seat = 1 - hero_seat
     hero_has_button = hero_seat == 0  # Dealer is always seat 0 in this engine.
 
@@ -269,6 +284,11 @@ def render_table(state: HULHEState, hero_seat: int, reveal_bot: bool = False) ->
     bot_active_cls = "iip-seat-active" if bot_active else ""
     hero_active_cls = "iip-seat-active" if hero_active else ""
     turn_html = _turn_banner(state, hero_seat)
+    last_action_html = (
+        f'<div class="iip-last-action">Bot {last_bot_action}</div>'
+        if last_bot_action
+        else ""
+    )
 
     body = (
         f'<div class="iip-table">'
@@ -277,6 +297,7 @@ def render_table(state: HULHEState, hero_seat: int, reveal_bot: bool = False) ->
         f'<div class="iip-cards">{bot_cards_html}</div>'
         f'<div class="iip-stack">Stack: <b>{state.stacks[bot_seat]}</b></div>'
         f'{bot_bet_html}'
+        f'{last_action_html}'
         f'</div>'
         f'<div class="iip-middle">'
         f'<div class="iip-street">{street_name}</div>'
@@ -292,4 +313,4 @@ def render_table(state: HULHEState, hero_seat: int, reveal_bot: bool = False) ->
         f'</div>'
         f'</div>'
     )
-    components.html(_CSS + body, height=560, scrolling=False)
+    components.html(_CSS + body, height=680, scrolling=False)

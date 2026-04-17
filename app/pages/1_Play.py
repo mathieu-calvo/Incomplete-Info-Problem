@@ -12,7 +12,7 @@ if str(_REPO_ROOT) not in sys.path:
 import streamlit as st  # noqa: E402
 
 from app.components.action_bar import render_action_bar  # noqa: E402
-from app.components.hand_replay import render_log  # noqa: E402
+from app.components.hand_replay import last_bot_action_label, render_log  # noqa: E402
 from app.components.table import render_table  # noqa: E402
 from app.services.bot_loader import load_bot_and_meta  # noqa: E402
 from app.services.hand_store import save_completed_hand  # noqa: E402
@@ -32,7 +32,13 @@ if session.state is None:
         st.rerun()
     st.stop()
 
-render_table(session.state, session.hero_seat, reveal_bot=session.hand_over())
+reveal_bot = session.hand_over() and session.state.folded is None
+render_table(
+    session.state,
+    session.hero_seat,
+    reveal_bot=reveal_bot,
+    last_bot_action=last_bot_action_label(session.game, session.state, session.hero_seat),
+)
 
 if session.hand_over():
     payoffs = session.game.payoffs(session.state)
