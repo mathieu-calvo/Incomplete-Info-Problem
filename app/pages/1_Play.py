@@ -25,11 +25,32 @@ st.title("Play vs Bot")
 bot, meta = load_bot_and_meta()
 session = get_session(bot=bot, bot_checkpoint=meta.get("revision", "dev"))
 
-if session.state is None:
-    st.info("Click **New hand** to start.")
-    if st.button("New hand", type="primary"):
+
+def _render_game_over_banner() -> None:
+    if session.hero_won_game():
+        st.success("🏆 You won the game — bot is out of chips.")
+    else:
+        st.error("💀 The bot broke you. Better luck next time.")
+    if st.button("New game", type="primary"):
+        session.start_new_game()
         session.start_new_hand()
         st.rerun()
+
+
+# Running-chip header.
+left, right = st.columns(2)
+left.metric("Your chips", session.hero_total_stack)
+right.metric("Bot chips", session.bot_total_stack)
+
+# No live hand: show the idle screen (either fresh start or game-over).
+if session.state is None:
+    if session.game_over():
+        _render_game_over_banner()
+    else:
+        st.info("Click **New hand** to start.")
+        if st.button("New hand", type="primary"):
+            session.start_new_hand()
+            st.rerun()
     st.stop()
 
 reveal_bot = session.hand_over() and session.state.folded is None
@@ -56,7 +77,9 @@ if session.hand_over():
     if store.is_configured:
         st.caption("Hand logged for future training.")
 
-    if st.button("Next hand", type="primary"):
+    if session.game_over():
+        _render_game_over_banner()
+    elif st.button("Next hand", type="primary"):
         session.start_new_hand()
         st.rerun()
 elif session.state.to_act == session.hero_seat:

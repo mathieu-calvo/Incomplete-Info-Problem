@@ -99,8 +99,17 @@ class HULHE:
 
     # ---------- lifecycle ----------
 
-    def new_hand(self, rng: random.Random | None = None, dealer: int = 0) -> HULHEState:
-        """Start a new hand. `dealer` is player 0 by default (SB/button in HU)."""
+    def new_hand(
+        self,
+        rng: random.Random | None = None,
+        dealer: int = 0,
+        stacks: list[int] | None = None,
+    ) -> HULHEState:
+        """Start a new hand. `dealer` is player 0 by default (SB/button in HU).
+
+        If `stacks` is provided, use those starting stacks (so sessions can carry chips
+        across hands). Otherwise, reset both players to `self.starting_stack`.
+        """
         deck = Deck(rng=rng)
         # Deal two hole cards to each player, in dealing order (dealer first, then BB, alternating).
         hole_cards: list[list[Card]] = [[], []]
@@ -108,7 +117,7 @@ class HULHE:
             for p in (dealer, 1 - dealer):
                 hole_cards[p].append(deck.deal(1)[0])
         # Blinds.
-        stacks = [self.starting_stack, self.starting_stack]
+        stacks = list(stacks) if stacks is not None else [self.starting_stack, self.starting_stack]
         contributions = [0, 0]
         total_invested = [0, 0]
         # dealer posts SB, non-dealer posts BB.
