@@ -64,6 +64,7 @@ class HULHEState:
     history: list[Action] = field(default_factory=list)
     terminal: bool = False
     winnings: list[int] = field(default_factory=lambda: [0, 0])
+    went_all_in: list[bool] = field(default_factory=lambda: [False, False])
 
     def clone(self) -> HULHEState:
         return replace(
@@ -75,6 +76,7 @@ class HULHEState:
             stacks=list(self.stacks),
             history=list(self.history),
             winnings=list(self.winnings),
+            went_all_in=list(self.went_all_in),
         )
 
 
@@ -129,7 +131,7 @@ class HULHE:
         total_invested[1 - dealer] += self.big_blind
         pot = self.small_blind + self.big_blind
 
-        return HULHEState(
+        state = HULHEState(
             hole_cards=hole_cards,
             board=[],
             pot=pot,
@@ -141,7 +143,12 @@ class HULHE:
             raises_this_street=1,    # the big blind counts as an "open" that SB must complete/raise
             last_aggressor=1 - dealer,
             folded=None,
+            went_all_in=[stacks[0] == 0, stacks[1] == 0],
         )
+        # If a blind posting already put someone all-in, run out immediately.
+        if state.stacks[0] == 0 or state.stacks[1] == 0:
+            self._maybe_run_out_all_in(state, rng)
+        return state
 
     # ---------- queries ----------
 
@@ -184,25 +191,30 @@ class HULHE:
                 s.contributions[player] += pay
                 s.total_invested[player] += pay
                 s.pot += pay
+                if s.stacks[player] == 0:
+                    s.went_all_in[player] = True
             # Check/call can close a street if the round is complete.
             if self._round_is_closed_after_call(s):
                 self._advance_street(s, rng=rng)
             else:
                 s.to_act = 1 - player
-            return s
+        else:
+            # BET_RAISE
+            unit = self.bet_unit(s)
+            raise_cost = to_call + unit
+            pay = min(raise_cost, s.stacks[player])
+            s.stacks[player] -= pay
+            s.contributions[player] += pay
+            s.total_invested[player] += pay
+            s.pot += pay
+            if s.stacks[player] == 0:
+                s.went_all_in[player] = True
+            s.raises_this_street += 1
+            s.last_aggressor = player
+            s.to_act = 1 - player
 
-        # BET_RAISE
-        unit = self.bet_unit(s)
-        # Amount the raiser puts in beyond current call, equal to one betting unit.
-        raise_cost = to_call + unit
-        pay = min(raise_cost, s.stacks[player])
-        s.stacks[player] -= pay
-        s.contributions[player] += pay
-        s.total_invested[player] += pay
-        s.pot += pay
-        s.raises_this_street += 1
-        s.last_aggressor = player
-        s.to_act = 1 - player
+        if not s.terminal:
+            self._maybe_run_out_all_in(s, rng)
         return s
 
     # ---------- helpers ----------
@@ -224,6 +236,53 @@ class HULHE:
             if last.type is ActionType.CHECK_CALL and last.player == _dealer_of(s):
                 return False
         return True
+
+    def _maybe_run_out_all_in(self, s: HULHEState, rng: random.Random | None) -> None:
+        """If any player is all-in and no further action is possible, refund & run out to showdown.
+
+        Called after every non-fold action. Cases:
+        - Neither player all-in → no-op.
+        - One all-in via partial call (contributions unequal, caller stack=0) → refund bettor's excess, run out.
+        - One all-in via raise, opponent still has chips → opponent can fold/call; no run-out yet.
+        - Contributions equal (or reset by street advance) with any all-in → run out.
+        """
+        if s.stacks[0] > 0 and s.stacks[1] > 0:
+            return
+
+        # Record who has been all-in at any point this hand.
+        for p in (0, 1):
+            if s.stacks[p] == 0:
+                s.went_all_in[p] = True
+
+        if s.contributions[0] != s.contributions[1]:
+            behind = 0 if s.contributions[0] < s.contributions[1] else 1
+            if s.stacks[behind] > 0:
+                # Behind player can still fold or (partial-)call.
+                s.to_act = behind
+                return
+            # Behind player is out of chips: refund the excess to the ahead player.
+            ahead = 1 - behind
+            excess = s.contributions[ahead] - s.contributions[behind]
+            s.contributions[ahead] -= excess
+            s.total_invested[ahead] -= excess
+            s.stacks[ahead] += excess
+            s.pot -= excess
+
+        self._run_out_to_showdown(s, rng)
+
+    def _run_out_to_showdown(self, s: HULHEState, rng: random.Random | None) -> None:
+        """Deal remaining community cards (if any) and settle showdown."""
+        if s.street is Street.PREFLOP:
+            s.board.extend(_deal_known(s, 3, rng=rng))
+            s.street = Street.FLOP
+        if s.street is Street.FLOP:
+            s.board.extend(_deal_known(s, 1, rng=rng))
+            s.street = Street.TURN
+        if s.street is Street.TURN:
+            s.board.extend(_deal_known(s, 1, rng=rng))
+            s.street = Street.RIVER
+        s.street = Street.SHOWDOWN
+        self._settle_showdown(s)
 
     def _advance_street(self, s: HULHEState, rng: random.Random | None) -> None:
         # Reset street-local counters.

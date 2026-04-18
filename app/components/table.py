@@ -259,6 +259,23 @@ body { margin: 0; background: transparent; }
     75%  { opacity: 1; transform: scale(1); }
     100% { opacity: 0; transform: scale(0.95) translateY(-10px); }
 }
+.iip-allin {
+    font-size: 0.85em;
+    font-weight: 800;
+    padding: 3px 12px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #ff6b6b 0%, #b71c1c 100%);
+    color: #fff;
+    border: 1.5px solid #7a0000;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.45);
+    animation: iip-allin-pulse 1.8s ease-in-out infinite;
+}
+@keyframes iip-allin-pulse {
+    0%, 100% { box-shadow: 0 2px 6px rgba(0,0,0,0.45), 0 0 0 0 rgba(255, 90, 90, 0.55); }
+    50%      { box-shadow: 0 2px 6px rgba(0,0,0,0.45), 0 0 0 8px rgba(255, 90, 90, 0); }
+}
 </style>
 """
 
@@ -301,6 +318,8 @@ def render_table(
         if last_bot_action
         else ""
     )
+    bot_allin_html = '<div class="iip-allin">All-in</div>' if state.went_all_in[bot_seat] else ""
+    hero_allin_html = '<div class="iip-allin">All-in</div>' if state.went_all_in[hero_seat] else ""
 
     body = (
         f'<div class="iip-table">'
@@ -308,6 +327,7 @@ def render_table(
         f'<div class="iip-seat-header"><span class="iip-seat-name">🤖 Bot</span>{dealer_bot_html}</div>'
         f'<div class="iip-cards">{bot_cards_html}</div>'
         f'<div class="iip-stack">Stack: <b>{state.stacks[bot_seat]}</b></div>'
+        f'{bot_allin_html}'
         f'{bot_bet_html}'
         f'{last_action_html}'
         f'</div>'
@@ -319,6 +339,7 @@ def render_table(
         f'</div>'
         f'<div class="iip-seat {hero_active_cls}">'
         f'{hero_bet_html}'
+        f'{hero_allin_html}'
         f'<div class="iip-stack">Stack: <b>{state.stacks[hero_seat]}</b></div>'
         f'<div class="iip-cards">{hero_cards_html}</div>'
         f'<div class="iip-seat-header"><span class="iip-seat-name">🧑 You</span>{dealer_hero_html}</div>'
