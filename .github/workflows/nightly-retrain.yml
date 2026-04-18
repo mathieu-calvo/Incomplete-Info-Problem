@@ -9,6 +9,9 @@ jobs:
   retrain:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_REPO_ID: ${{ secrets.HF_REPO_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,9 +24,7 @@ jobs:
           pip install --index-url https://download.pytorch.org/whl/cpu torch
           pip install -e ".[train,app]"
       - name: Pull previous checkpoint
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_REPO_ID: ${{ secrets.HF_REPO_ID }}
+        if: env.HF_TOKEN != '' && env.HF_REPO_ID != ''
         run: |
           mkdir -p checkpoints/local
           python -c "import os; from iip.io.hf_hub import latest_checkpoint_path; \
@@ -47,12 +48,13 @@ jobs:
             --hands 20000 \
             --output reports/latest.json
       - name: Publish on pass
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_REPO_ID: ${{ secrets.HF_REPO_ID }}
+        if: env.HF_TOKEN != '' && env.HF_REPO_ID != ''
         run: |
           python -c "from datetime import datetime, timezone; from iip.io.hf_hub import upload_checkpoint; \
             upload_checkpoint('checkpoints/local/new.pt', '${HF_REPO_ID}', tag='ckpt-' + datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S'))"
+      - name: Skip publish (no HF secrets)
+        if: env.HF_TOKEN == '' || env.HF_REPO_ID == ''
+        run: echo "HF_TOKEN / HF_REPO_ID not configured — skipping Hub publish."
       - name: Commit report
         run: |
           git config user.name "iip-bot"
