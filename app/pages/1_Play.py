@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -79,7 +80,8 @@ if session.hand_over():
 
     if session.game_over():
         _render_game_over_banner()
-    elif st.button("Next hand", type="primary"):
+    else:
+        time.sleep(1.5)
         session.start_new_hand()
         st.rerun()
 elif session.state.to_act == session.hero_seat:

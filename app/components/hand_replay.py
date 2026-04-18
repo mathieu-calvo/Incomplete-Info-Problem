@@ -93,12 +93,11 @@ def replay(game: HULHE, state: HULHEState) -> list[ReplayedAction]:
 def last_bot_action_label(
     game: HULHE, state: HULHEState, hero_seat: int
 ) -> str | None:
-    """Short label of the bot's most recent action on the current street, else None."""
-    if state.terminal or state.to_act != hero_seat or not state.history:
+    """Short label of the bot's most recent action (incl. folds and street-closers), else None."""
+    if not state.history:
         return None
-    last = state.history[-1]
     bot_seat = 1 - hero_seat
-    if last.player != bot_seat or last.street != state.street:
+    if state.history[-1].player != bot_seat:
         return None
     entries = replay(game, state)
     # Lowercase first letter for natural prefix ("Bot raises to 4").

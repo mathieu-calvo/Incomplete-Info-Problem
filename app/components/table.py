@@ -238,14 +238,26 @@ body { margin: 0; background: transparent; }
     50%      { box-shadow: 0 0 0 8px rgba(80, 200, 120, 0); }
 }
 .iip-last-action {
-    font-size: 0.8em;
-    font-weight: 600;
-    padding: 3px 12px;
-    border-radius: 10px;
-    background: rgba(255, 229, 122, 0.18);
-    color: #ffe57a;
-    border: 1px solid rgba(255, 229, 122, 0.45);
-    letter-spacing: 0.3px;
+    font-size: 1.25em;
+    font-weight: 800;
+    padding: 8px 22px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #ffe87a 0%, #e2a017 100%);
+    color: #2a1a00;
+    border: 2px solid #9e6f0d;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.45), inset 0 1px 1px rgba(255,255,255,0.6);
+    animation: iip-action-pop 3.2s ease-out forwards;
+    transform-origin: center;
+    white-space: nowrap;
+}
+@keyframes iip-action-pop {
+    0%   { opacity: 0; transform: scale(0.6) translateY(-6px); }
+    15%  { opacity: 1; transform: scale(1.15) translateY(0); }
+    30%  { transform: scale(1); }
+    75%  { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.95) translateY(-10px); }
 }
 </style>
 """
