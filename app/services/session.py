@@ -32,6 +32,14 @@ class LoggedAction:
 
 
 @dataclass
+class CompletedHand:
+    """Snapshot of a finished hand, kept so the user can browse past hand logs."""
+    state: HULHEState
+    hero_seat: int
+    hand_index: int
+
+
+@dataclass
 class PlaySession:
     user_id: str
     game: HULHE
@@ -44,6 +52,8 @@ class PlaySession:
     # Persistent stacks by physical player (hero / bot), carried across hands.
     hero_total_stack: int = 0
     bot_total_stack: int = 0
+    # Terminal states of every hand played this game, in order. Used by the hand-log navigator.
+    completed_hands: list[CompletedHand] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if self.hero_total_stack == 0:
@@ -58,6 +68,7 @@ class PlaySession:
         self.hand_index = 0
         self.state = None
         self.log = []
+        self.completed_hands = []
 
     def game_over(self) -> bool:
         """True when either player can't post the big blind."""
@@ -115,6 +126,14 @@ class PlaySession:
         assert self.state is not None and self.state.terminal
         self.hero_total_stack = self.state.stacks[self.hero_seat]
         self.bot_total_stack = self.state.stacks[1 - self.hero_seat]
+        if not self.completed_hands or self.completed_hands[-1].hand_index != self.hand_index:
+            self.completed_hands.append(
+                CompletedHand(
+                    state=self.state.clone(),
+                    hero_seat=self.hero_seat,
+                    hand_index=self.hand_index,
+                )
+            )
 
     def _sample_bot_action(self) -> tuple[ActionType, dict[str, float]]:
         """Bot's action sample, filtering FOLD when checking is free. Returns (action, full_policy)."""
