@@ -81,7 +81,7 @@ if session.hand_over():
     if session.game_over():
         _render_game_over_banner()
     else:
-        time.sleep(1.5)
+        time.sleep(1.5 if session.state.folded is not None else 3.0)
         session.start_new_hand()
         st.rerun()
 elif session.state.to_act == session.hero_seat:
