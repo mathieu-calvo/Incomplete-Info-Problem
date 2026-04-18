@@ -26,6 +26,38 @@ st.title("Play vs Bot")
 bot, meta = load_bot_and_meta()
 session = get_session(bot=bot, bot_checkpoint=meta.get("revision", "dev"))
 
+# Game settings: editable only before a game starts (or after one ends).
+_settings_locked = session.state is not None and not session.game_over()
+with st.sidebar:
+    st.header("Game settings")
+    bb_input = st.number_input(
+        "Big blind",
+        min_value=2,
+        max_value=200,
+        value=int(session.game.big_blind),
+        step=2,
+        disabled=_settings_locked,
+    )
+    stack_input = st.number_input(
+        "Starting stack",
+        min_value=int(2 * bb_input),
+        max_value=100_000,
+        value=max(int(session.game.starting_stack), int(2 * bb_input)),
+        step=max(bb_input, 10),
+        disabled=_settings_locked,
+    )
+    st.caption(
+        f"SB {max(1, bb_input // 2)} · BB {bb_input} · "
+        f"small bet {bb_input} · big bet {2 * bb_input}"
+    )
+
+
+def _apply_settings_and_start_new_game() -> None:
+    if session.game.big_blind != bb_input or session.game.starting_stack != stack_input:
+        session.configure_game(int(bb_input), int(stack_input))
+    else:
+        session.start_new_game()
+
 
 def _render_game_over_banner() -> None:
     if session.hero_won_game():
@@ -33,7 +65,7 @@ def _render_game_over_banner() -> None:
     else:
         st.error("💀 The bot broke you. Better luck next time.")
     if st.button("New game", type="primary"):
-        session.start_new_game()
+        _apply_settings_and_start_new_game()
         session.start_new_hand()
         st.rerun()
 
@@ -48,8 +80,9 @@ if session.state is None:
     if session.game_over():
         _render_game_over_banner()
     else:
-        st.info("Click **New hand** to start.")
-        if st.button("New hand", type="primary"):
+        st.info("Pick settings in the sidebar, then click **Start game**.")
+        if st.button("Start game", type="primary"):
+            _apply_settings_and_start_new_game()
             session.start_new_hand()
             st.rerun()
     st.stop()

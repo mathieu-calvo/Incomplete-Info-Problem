@@ -70,6 +70,22 @@ class PlaySession:
         self.log = []
         self.completed_hands = []
 
+    def configure_game(self, big_blind: int, starting_stack: int) -> None:
+        """Rebuild the engine with a new BB / starting stack and start a fresh game.
+
+        Bets derive from BB: small blind = BB // 2, small bet = BB, big bet = 2 * BB.
+        """
+        sb = max(1, big_blind // 2)
+        self.game = HULHE(
+            small_blind=sb,
+            big_blind=big_blind,
+            small_bet=big_blind,
+            big_bet=2 * big_blind,
+            max_raises_per_round=self.game.max_raises_per_round,
+            starting_stack=starting_stack,
+        )
+        self.start_new_game()
+
     def game_over(self) -> bool:
         """True when either player can't post the big blind."""
         bb = self.game.big_blind
