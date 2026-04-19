@@ -36,8 +36,10 @@ from __future__ import annotations
 
 import copy
 import logging
+import os
 import random
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -91,7 +93,12 @@ class DeepCFRTrainer:
 
     # ---------- public ----------
 
-    def iterate(self, n_iters: int = 1) -> None:
+    def iterate(
+        self,
+        n_iters: int = 1,
+        checkpoint_path: Path | None = None,
+        checkpoint_every: int = 1,
+    ) -> None:
         outer = tqdm(range(1, n_iters + 1), desc="Deep CFR iters", unit="iter")
         for t in outer:
             for traverser in (0, 1):
@@ -110,6 +117,22 @@ class DeepCFRTrainer:
                 f"[iter {t}] adv buffers: {[len(b) for b in self.adv_buffers]}, "
                 f"strat buffer: {len(self.strategy_buffer)}"
             )
+            if checkpoint_path is not None and t % checkpoint_every == 0:
+                self._save_checkpoint(checkpoint_path)
+                tqdm.write(f"[iter {t}] checkpoint -> {checkpoint_path}")
+
+    def _save_checkpoint(self, path: Path) -> None:
+        """Atomic save: train strategy net on current buffer, write to path.tmp, rename.
+
+        Rename-after-write means an interrupt mid-save leaves the previous checkpoint
+        intact rather than a half-written file.
+        """
+        agent = self.finalize_strategy()
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        agent.save(tmp)
+        os.replace(tmp, path)
 
     def finalize_strategy(self) -> DeepCFRAgent:
         self._train_strategy()

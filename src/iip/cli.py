@@ -27,6 +27,7 @@ def train(
     iters: int = typer.Option(5, help="Number of Deep CFR iterations."),
     traversals: int = typer.Option(2000, help="Traversals per iteration per player."),
     output: Path = typer.Option(Path("checkpoints/local/deepcfr.pt"), help="Where to save the strategy net."),
+    checkpoint_every: int = typer.Option(1, help="Save a checkpoint every N iters. 0 disables mid-run saves."),
     seed: int = typer.Option(0),
     device: str = typer.Option("cpu"),
 ) -> None:
@@ -46,7 +47,11 @@ def train(
         device=device,
     )
     trainer = DeepCFRTrainer(adapter=adapter, config=cfg, seed=seed)
-    trainer.iterate(n_iters=iters)
+    trainer.iterate(
+        n_iters=iters,
+        checkpoint_path=output if checkpoint_every > 0 else None,
+        checkpoint_every=max(checkpoint_every, 1),
+    )
     agent = trainer.finalize_strategy()
     agent.save(output)
     rprint(f"[green]Saved Deep CFR strategy net -> {output}[/green]")
