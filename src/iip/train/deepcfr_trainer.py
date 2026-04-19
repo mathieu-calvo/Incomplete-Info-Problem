@@ -43,6 +43,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from tqdm.auto import tqdm
 
 from iip.agents.deep_cfr import DeepCFRAgent, regret_matching
 from iip.agents.networks import MLP
@@ -91,15 +92,24 @@ class DeepCFRTrainer:
     # ---------- public ----------
 
     def iterate(self, n_iters: int = 1) -> None:
-        for t in range(1, n_iters + 1):
+        outer = tqdm(range(1, n_iters + 1), desc="Deep CFR iters", unit="iter")
+        for t in outer:
             for traverser in (0, 1):
-                for _ in range(self.cfg.traversals_per_iteration):
+                trav_bar = tqdm(
+                    range(self.cfg.traversals_per_iteration),
+                    desc=f"  iter {t} p{traverser} traversals",
+                    unit="trav",
+                    leave=False,
+                )
+                for _ in trav_bar:
                     rng = random.Random(self.rng.random())
                     root = self.adapter.new_hand(rng=rng)
                     self._traverse(root, traverser, t, rng)
                 self._train_advantage(traverser)
-            log.info("Deep CFR iter %d done — adv buffers: %s, strat buffer: %d", t,
-                     [len(b) for b in self.adv_buffers], len(self.strategy_buffer))
+            tqdm.write(
+                f"[iter {t}] adv buffers: {[len(b) for b in self.adv_buffers]}, "
+                f"strat buffer: {len(self.strategy_buffer)}"
+            )
 
     def finalize_strategy(self) -> DeepCFRAgent:
         self._train_strategy()
@@ -161,7 +171,13 @@ class DeepCFRTrainer:
         opt = optim.Adam(net.parameters(), lr=self.cfg.learning_rate)
         loss_fn = nn.SmoothL1Loss(reduction="none")
 
-        for _ in range(self.cfg.advantage_train_steps):
+        bar = tqdm(
+            range(self.cfg.advantage_train_steps),
+            desc=f"  train adv p{player}",
+            unit="step",
+            leave=False,
+        )
+        for _ in bar:
             batch = buf.sample(self.cfg.batch_size)
             if not batch:
                 break
@@ -177,6 +193,7 @@ class DeepCFRTrainer:
             loss.backward()
             nn.utils.clip_grad_norm_(net.parameters(), self.cfg.grad_clip)
             opt.step()
+            bar.set_postfix(loss=float(loss.detach().cpu()))
         self.adv_nets[player] = net
 
     def _train_strategy(self) -> None:
@@ -185,7 +202,12 @@ class DeepCFRTrainer:
             log.warning("Not enough strategy samples (%d) — strategy net will be under-trained.", len(buf))
         opt = optim.Adam(self.strategy_net.parameters(), lr=self.cfg.learning_rate)
 
-        for _ in range(self.cfg.strategy_train_steps):
+        bar = tqdm(
+            range(self.cfg.strategy_train_steps),
+            desc="  train strategy",
+            unit="step",
+        )
+        for _ in bar:
             batch = buf.sample(self.cfg.batch_size)
             if not batch:
                 break
@@ -203,3 +225,4 @@ class DeepCFRTrainer:
             loss.backward()
             nn.utils.clip_grad_norm_(self.strategy_net.parameters(), self.cfg.grad_clip)
             opt.step()
+            bar.set_postfix(loss=float(loss.detach().cpu()))
