@@ -2,7 +2,8 @@
 
 This document explains what `iip eval` measures, how to read its output, and
 what to change when the numbers look bad. Pair it with
-[`architecture.md`](architecture.md) for the "why" behind the training stack.
+[`architecture.md`](architecture.md) for the "why" behind the training stack,
+and [`training.md`](training.md) for how to operate `iip train`.
 
 ---
 

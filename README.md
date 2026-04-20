@@ -52,7 +52,7 @@ iip eval --checkpoint checkpoints/local/deepcfr.pt --hands 5000 --opponents fish
 iip play --checkpoint checkpoints/local/deepcfr.pt --hands 3
 ```
 
-For real results expect `iters >= 50` and `traversals >= 10_000` — a short Kuhn convergence test lives in `tests/agents/test_deepcfr_kuhn.py` so you can verify the solver is wired correctly before burning HULHE compute.
+For real results expect `iters >= 50` and `traversals >= 10_000` — a short Kuhn convergence test lives in `tests/agents/test_deepcfr_kuhn.py` so you can verify the solver is wired correctly before burning HULHE compute. See [`docs/training.md`](docs/training.md) for the full iters-vs-traversals trade-off, progress / checkpoint behaviour, and how to tune via [`docs/evaluation.md`](docs/evaluation.md).
 
 ## Streamlit app
 
