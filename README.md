@@ -87,6 +87,8 @@ The nightly GitHub Actions job (`.github/workflows/nightly-retrain.yml`) does:
 
 Required secrets in GitHub: `HF_TOKEN`, `HF_REPO_ID`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`.
 
+For the step-by-step process of improving the bot incrementally — how local training runs, human play, and the nightly retrain compose without erasing each other — see [`docs/improvement-workflow.md`](docs/improvement-workflow.md).
+
 ## Algorithmic notes
 
 - **Deep CFR**: two MLPs per player — advantage (`V_p(I, a)`) regressed on sampled counterfactual regrets, strategy (`π̄(I)`) regressed on sampled strategies from a reservoir buffer with linear-CFR weighting. Regret matching at each decision node produces the behavioural strategy.
