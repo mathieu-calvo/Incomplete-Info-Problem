@@ -427,20 +427,12 @@ shared one, the steps are:
 5. Delete the old Supabase project to free up the free-tier slot (e.g.
    for Portfolio-Simulator).
 
-> **Code follow-up required.** The current `src/iip/io/supabase_client.py`
-> writes to `public.hands` / `public.sessions`. For the shared project to
-> work, two small changes are needed:
->
-> - Qualify the hands table with the `iip` schema:
->   `self._client.schema("iip").table("hands")` in both `insert_hand` and
->   `fetch_hands_since`.
-> - Replace `log_session(...)` so it inserts one row into
->   `shared.app_events` with `app='iip'`, `event='session_start'`,
->   `user_id=session_id`, and the old session fields folded into `meta`:
->   `self._client.schema("shared").table("app_events").insert({...})`.
->
-> The app-facing API (`HandStore.log_session`, `HandStore.insert_hand`,
-> `HandStore.fetch_hands_since`) stays the same, so callers don't change.
+> **Code note.** `src/iip/io/supabase_client.py` already qualifies its
+> calls for the shared project: `insert_hand` and `fetch_hands_since` go
+> through `.schema("iip").table("hands")`, and `log_session` writes one
+> `session_start` row into `shared.app_events` with the old session fields
+> folded into `meta`. The public `HandStore` API is unchanged — callers
+> (`session_tracker.py`, `nightly_retrain.py`, etc.) need no edits.
 
 ---
 

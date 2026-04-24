@@ -1,39 +1,15 @@
 """Supabase client for logging hands played in the Streamlit app and reading them back for retraining.
 
-Table schema (create once in the Supabase SQL editor):
+The Supabase project is shared with other hobby apps under a schema-per-app
+layout (see ``scripts/supabase_schema.sql`` and ``docs/deployment-guide.md``):
 
-    create table hands (
-        id uuid primary key default gen_random_uuid(),
-        created_at timestamptz default now(),
-        user_id text,
-        hero_seat int2 not null,
-        bot_checkpoint text,
-        hole_cards_hero text,
-        hole_cards_bot text,
-        board text,
-        action_log jsonb not null,
-        bot_policies jsonb,
-        payoff_hero int4,
-        payoff_bot int4
-    );
+    - ``iip.hands``          — one row per completed hand
+    - ``shared.app_events``  — one row per interesting event across all apps
+                                (session_start for IIP; session tracking lives
+                                here rather than a dedicated iip.sessions table)
 
-    alter table hands enable row level security;
-    create policy "inserts from app" on hands for insert with check (true);
-    create policy "reads from service role" on hands for select using (true);
-
-    create table sessions (
-        id uuid primary key default gen_random_uuid(),
-        session_id text not null,
-        created_at timestamptz default now(),
-        user_agent text,
-        country text,
-        app_version text,
-        bot_checkpoint text
-    );
-    create index idx_sessions_created_at on sessions(created_at);
-    alter table sessions enable row level security;
-    create policy "inserts from app" on sessions for insert with check (true);
-    create policy "reads from service role" on sessions for select using (true);
+The REST client reaches those tables via ``.schema("iip")`` / ``.schema("shared")``;
+``iip`` and ``shared`` must be listed in Project Settings → API → Exposed schemas.
 
 Environment variables:
     SUPABASE_URL
@@ -89,7 +65,9 @@ class HandStore:
         payload = asdict(rec)
         payload["action_log"] = json.dumps(rec.action_log)
         payload["bot_policies"] = json.dumps(rec.bot_policies)
-        resp = self._client.table("hands").insert(payload).execute()  # type: ignore[union-attr]
+        resp = (
+            self._client.schema("iip").table("hands").insert(payload).execute()  # type: ignore[union-attr]
+        )
         return resp.data[0] if resp.data else None
 
     def log_session(
@@ -100,22 +78,41 @@ class HandStore:
         app_version: str | None = None,
         bot_checkpoint: str | None = None,
     ) -> dict[str, Any] | None:
+        """Log one ``session_start`` row to ``shared.app_events``.
+
+        user_id mirrors session_id for IIP (no login, so the session UUID is
+        the closest thing to an identity). Everything else lands in ``meta``
+        so ``shared.app_events`` stays the same tiny shape across apps.
+        """
         if not self.is_configured:
             return None
         payload = {
+            "app": "iip",
+            "event": "session_start",
+            "user_id": session_id,
             "session_id": session_id,
-            "user_agent": user_agent,
-            "country": country,
             "app_version": app_version,
-            "bot_checkpoint": bot_checkpoint,
+            "meta": {
+                "user_agent": user_agent,
+                "country": country,
+                "bot_checkpoint": bot_checkpoint,
+            },
         }
-        resp = self._client.table("sessions").insert(payload).execute()  # type: ignore[union-attr]
+        resp = (
+            self._client.schema("shared").table("app_events").insert(payload).execute()  # type: ignore[union-attr]
+        )
         return resp.data[0] if resp.data else None
 
     def fetch_hands_since(self, since: datetime | None = None, limit: int = 10_000) -> list[dict[str, Any]]:
         if not self.is_configured:
             return []
-        q = self._client.table("hands").select("*").order("created_at", desc=False).limit(limit)  # type: ignore[union-attr]
+        q = (
+            self._client.schema("iip")  # type: ignore[union-attr]
+            .table("hands")
+            .select("*")
+            .order("created_at", desc=False)
+            .limit(limit)
+        )
         if since is not None:
             q = q.gte("created_at", since.astimezone(UTC).isoformat())
         resp = q.execute()
