@@ -8,9 +8,29 @@ a new checkpoint to Hugging Face Hub.
 **Stack:**
 - **Hosting:** Streamlit Community Cloud (free)
 - **Model storage:** Hugging Face Hub (free)
-- **Database:** Supabase PostgreSQL (free tier, 500 MB)
-- **Auth:** none — anonymous sessions tracked via Supabase (see Step 4)
+- **Database:** Supabase PostgreSQL (free tier, 500 MB). **Shared** with
+  other hobby apps via the schema-per-app layout below — one Supabase
+  project hosts Lexico, IIP, and any future small app. Portfolio-Simulator
+  stays on its own separate project.
+- **Auth:** none — anonymous sessions tracked via `shared.app_events`
+  (see Step 4)
 - **Retraining:** GitHub Actions nightly cron (free tier)
+
+### Shared-project layout
+
+The Supabase free tier allows two projects per account; to make room for
+Portfolio-Simulator and any future small app, IIP shares a project with
+Lexico (and future apps) under a **schema-per-app** convention:
+
+| Schema          | Owner app                | What's in it                                       |
+|-----------------|--------------------------|----------------------------------------------------|
+| `lexico`        | Lexico                   | decks, cards, review logs, LLM usage, liked quotes |
+| `iip`           | Incomplete-Info-Problem  | `hands` (the only content table)                   |
+| `shared`        | All apps                 | `app_events` — cross-app traffic / engagement log  |
+
+IIP's only content table is `iip.hands`; sessions and other traffic go to
+`shared.app_events` so analytics queries span every app with one
+`GROUP BY`. Adding a future app is one more schema — no other app changes.
 
 ---
 
@@ -85,69 +105,49 @@ contains `strategy.pt`.
 
 ---
 
-## Step 4: Create the Supabase project and tables
+## Step 4: Set up the shared Supabase project
+
+**If this is the first hobby app you're deploying**, create the shared
+project:
 
 1. Go to https://supabase.com and click **Start your project**.
 2. Click **New project**:
-   - **Project name**: `iip-hulhe`
-   - **Database password**: pick a strong password, save it
-   - **Region**: closest to your users (e.g. `West EU (Ireland)`)
+   - **Project name**: `hobby-apps` (anything — it will host multiple apps).
+   - **Database password**: pick a strong password, save it.
+   - **Region**: closest to your users (e.g. `West EU (Ireland)`).
 3. Click **Create new project** — wait ~2 minutes for it to spin up.
 
-### Create the `hands` and `sessions` tables
+**If you've already set up the shared project for another app** (e.g.
+Lexico), skip project creation and reuse the existing one.
+
+### Create IIP's schema
 
 1. In the Supabase dashboard, click **SQL Editor** → **New query**.
-2. Paste this and click **Run**:
+2. Paste the contents of
+   [`scripts/supabase_schema.sql`](../scripts/supabase_schema.sql) and click
+   **Run**. The script is idempotent — safe to re-run on schema changes.
 
-```sql
--- Hands played against the bot.
-create table if not exists hands (
-    id uuid primary key default gen_random_uuid(),
-    created_at timestamptz default now(),
-    user_id text,
-    hero_seat int2 not null,
-    bot_checkpoint text,
-    hole_cards_hero text,
-    hole_cards_bot text,
-    board text,
-    action_log jsonb not null,
-    bot_policies jsonb,
-    payoff_hero int4,
-    payoff_bot int4
-);
+You should see "Success. No rows returned." The SQL creates:
 
-create index if not exists idx_hands_created_at on hands(created_at);
+- the `iip` and `shared` schemas (if absent),
+- `iip.hands` + RLS policies (anon inserts, service-role reads/updates),
+- `shared.app_events` (if absent — idempotent across apps) + RLS.
 
-alter table hands enable row level security;
+> **Why the split.** The anon key can insert into `iip.hands` and
+> `shared.app_events` but cannot read them back (RLS blocks SELECT for
+> non-service-role users). The retrain job uses the service-role key,
+> bypasses RLS, and can both read hands and mark them as consumed.
 
--- Public app (anon key) can insert, but cannot read back.
-create policy "inserts from app" on hands
-    for insert with check (true);
--- Service-role key (used only by the retrain script) can read.
-create policy "reads from service role" on hands
-    for select using (auth.role() = 'service_role');
+### Expose the schemas to the REST API
 
--- Anonymous usage tracking — one row per Streamlit session.
-create table if not exists sessions (
-    id uuid primary key default gen_random_uuid(),
-    session_id text not null,
-    created_at timestamptz default now(),
-    user_agent text,
-    country text,
-    app_version text,
-    bot_checkpoint text
-);
+The `supabase-py` client (used by the Streamlit app + retrain script) goes
+through PostgREST, which only sees schemas explicitly listed in the API
+config. One-time setup:
 
-create index if not exists idx_sessions_created_at on sessions(created_at);
-
-alter table sessions enable row level security;
-create policy "inserts from app" on sessions
-    for insert with check (true);
-create policy "reads from service role" on sessions
-    for select using (auth.role() = 'service_role');
-```
-
-You should see "Success. No rows returned." — both tables are now live.
+1. **Project Settings** → **API** → **Exposed schemas**.
+2. Add `iip` and `shared` to the comma-separated list (alongside the
+   default `public`). Final value: `public, iip, shared`.
+3. Click **Save** and wait ~30 s for PostgREST to reload.
 
 ### Grab the connection credentials
 
@@ -156,57 +156,68 @@ You should see "Success. No rows returned." — both tables are now live.
    - **Project URL** (`https://xxxx.supabase.co`)
    - **Project API keys → `anon` `public`** — used by the app (insert-only).
    - **Project API keys → `service_role` `secret`** — used by the retrain
-     job (reads hands).
+     job (reads hands, marks them as consumed).
 
-> **Why the split.** The anon key can't read hands back thanks to RLS. The
-> service-role key bypasses RLS. Keeping the Streamlit app on the anon key
-> means even if it's fully compromised, attackers can't dump the hands
-> table.
+> **Key distinction.** The anon key can't read `iip.hands` thanks to RLS.
+> The service-role key bypasses RLS. Keeping the Streamlit app on the
+> anon key means even if it's fully compromised, attackers can't dump the
+> hands table.
 
 ---
 
 ## Step 5: Query usage without an auth layer
 
 Once the app is live, you'll want to see who used it. Because there is
-**no login**, we count **sessions** (one per browser tab) and **hands**
-(engagement per session).
+**no login**, we count **sessions** (one per browser tab, logged as
+`session_start` events in `shared.app_events`) and **hands** (engagement
+per session, from `iip.hands`).
 
 From the Supabase SQL Editor:
 
 ```sql
--- Sessions per day for the last 30 days.
-select date_trunc('day', created_at)::date as day, count(*) as sessions
-from sessions
-where created_at > now() - interval '30 days'
-group by 1
-order by 1 desc;
+-- Sessions per day for the last 30 days (IIP only).
+SELECT date_trunc('day', occurred_at)::date AS day, count(*) AS sessions
+FROM shared.app_events
+WHERE app = 'iip' AND event = 'session_start'
+  AND occurred_at > now() - interval '30 days'
+GROUP BY 1
+ORDER BY 1 DESC;
 
 -- Hands per session — a rough "engagement" histogram.
-select session_id, count(*) as hands
-from hands
-group by 1
-order by 2 desc
-limit 50;
+SELECT user_id AS session_id, count(*) AS hands
+FROM iip.hands
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 50;
 
 -- Sessions that played zero hands (visited but bounced).
-select count(*)
-from sessions s
-left join hands h on h.user_id = s.session_id
-where h.id is null;
+SELECT count(*)
+FROM shared.app_events e
+LEFT JOIN iip.hands h ON h.user_id = e.session_id
+WHERE e.app = 'iip' AND e.event = 'session_start' AND h.id IS NULL;
+
+-- Cross-app traffic overview (works because every app writes to the same table).
+SELECT app, date_trunc('day', occurred_at)::date AS day,
+       count(DISTINCT session_id) AS sessions,
+       count(*) AS events
+FROM shared.app_events
+WHERE occurred_at > now() - interval '30 days'
+GROUP BY 1, 2
+ORDER BY 2 DESC, 1;
 ```
 
 **What this measures:**
 
-- **Sessions** — one per browser tab when someone opens the app. A single
-  person opening three tabs counts as three sessions. Good enough for "how
-  many people touched the app this week".
-- **Hands** — every completed hand against the bot. The `user_id` column in
-  `hands` is populated with the session id, so hands-per-session joins
-  cleanly.
+- **Sessions** — one `session_start` row per browser tab on first render.
+  Three tabs = three sessions. Good enough for "how many people touched
+  the app this week". Same grain across every app on the project.
+- **Hands** — every completed hand against the bot (in `iip.hands`). The
+  `user_id` column is populated with the session id, so hands-per-session
+  joins cleanly with `shared.app_events`.
 - **Cannot** tell you if the same person returned yesterday — there is no
-  cross-session identity. If that matters later, add a cookie via
-  `st.query_params` and reuse the id across visits; that's a one-file
-  change to `app/services/session_tracker.py`.
+  cross-session identity. If that matters later, persist the UUID to
+  browser localStorage via `streamlit-js-eval`; that's a one-file change
+  to `app/services/session_tracker.py`.
 
 Streamlit Cloud's admin panel also shows a rough "viewers" count — free
 bonus telemetry on top of the Supabase queries above.
@@ -252,12 +263,13 @@ APP_VERSION = "0.2.0"
 3. Open it — the app should show the table with you sitting at one seat
    and the bot at the other.
 4. Play one complete hand to showdown.
-5. In the Supabase dashboard → **Table Editor** → `hands`, confirm a new
-   row appeared with the hole cards, board, action log, and payoff.
-6. In `sessions`, confirm a row appeared with your session id and
-   user-agent string.
-7. Open the app in a new incognito tab — a **new** session row should
-   appear with a different `session_id`.
+5. In the Supabase dashboard → **Table Editor**, switch the schema
+   selector to `iip` → `hands`, confirm a new row appeared with the hole
+   cards, board, action log, and payoff.
+6. Switch the schema selector to `shared` → `app_events`, confirm a row
+   with `app='iip'` and `event='session_start'` appeared.
+7. Open the app in a new incognito tab — a **new** `session_start` row
+   should appear in `shared.app_events` with a different `session_id`.
 
 If any of these fail, the Streamlit Cloud **Manage app → Logs** pane is
 the first place to look.
@@ -349,12 +361,97 @@ above.
 
 ---
 
+## Storage hygiene (shared 500 MB budget)
+
+The whole shared project shares the free tier's 500 MB ceiling. Because
+`iip.hands` is the fastest-growing table across the project, watch its
+size and purge consumed rows periodically.
+
+```sql
+-- Per-schema size.
+SELECT schemaname,
+       pg_size_pretty(sum(pg_total_relation_size(schemaname||'.'||tablename))::bigint) AS size
+FROM pg_tables
+WHERE schemaname IN ('lexico', 'iip', 'shared')
+GROUP BY schemaname
+ORDER BY sum(pg_total_relation_size(schemaname||'.'||tablename)) DESC;
+
+-- Hands stats (how many are still unconsumed by training?).
+SELECT
+    count(*) AS total,
+    count(*) FILTER (WHERE used_for_training_at IS NOT NULL) AS consumed,
+    pg_size_pretty(pg_total_relation_size('iip.hands')) AS size
+FROM iip.hands;
+```
+
+After each successful nightly retrain, the retrain script should mark the
+hands it trained on:
+
+```sql
+-- Run at end of nightly_retrain.py after upload succeeds.
+UPDATE iip.hands
+SET used_for_training_at = now()
+WHERE used_for_training_at IS NULL
+  AND created_at <= :fetched_until_ts;
+```
+
+Then a weekly (or monthly) cleanup deletes old consumed rows:
+
+```sql
+-- Keep 30 days of consumed hands for safety, drop the rest.
+DELETE FROM iip.hands
+WHERE used_for_training_at IS NOT NULL
+  AND used_for_training_at < now() - interval '30 days';
+```
+
+If storage ever runs hot even with purging, the cheapest next cut is to
+set `bot_policies = NULL` on already-consumed rows \u2014 policies are
+recomputable from checkpoint + action_log, and they're the biggest column.
+
+---
+
+## Migration from the legacy (per-app) Supabase project
+
+If you're moving IIP off its old dedicated Supabase project onto the
+shared one, the steps are:
+
+1. Run the new `scripts/supabase_schema.sql` on the shared project (Step 4).
+2. Dump `hands` from the old project (Table Editor \u2192 `hands` \u2192 Export
+   \u2192 CSV) and import into `iip.hands` on the shared project (SQL editor
+   `\copy` or the Table Editor's import UI). The column set matches; add
+   `used_for_training_at = NULL` on import.
+3. Old `sessions` rows can be backfilled into `shared.app_events` as
+   `session_start` events, or discarded \u2014 they're pure telemetry.
+4. Update Streamlit Cloud secrets + GitHub Actions secrets to the shared
+   project's URL and keys.
+5. Delete the old Supabase project to free up the free-tier slot (e.g.
+   for Portfolio-Simulator).
+
+> **Code follow-up required.** The current `src/iip/io/supabase_client.py`
+> writes to `public.hands` / `public.sessions`. For the shared project to
+> work, two small changes are needed:
+>
+> - Qualify the hands table with the `iip` schema:
+>   `self._client.schema("iip").table("hands")` in both `insert_hand` and
+>   `fetch_hands_since`.
+> - Replace `log_session(...)` so it inserts one row into
+>   `shared.app_events` with `app='iip'`, `event='session_start'`,
+>   `user_id=session_id`, and the old session fields folded into `meta`:
+>   `self._client.schema("shared").table("app_events").insert({...})`.
+>
+> The app-facing API (`HandStore.log_session`, `HandStore.insert_hand`,
+> `HandStore.fetch_hands_since`) stays the same, so callers don't change.
+
+---
+
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
 | App boots but shows "No bot checkpoint found" | Either the HF Hub creds are missing/wrong or no tags exist on the model repo. Repeat Step 3. |
 | App logs show `supabase.AuthApiError` on insert | The `SUPABASE_KEY` on Streamlit Cloud is wrong or is the service-role key (should be anon). |
+| `schema "iip" does not exist` or `relation "iip.hands" does not exist` via the REST API | You forgot to add `iip, shared` to **Project Settings \u2192 API \u2192 Exposed schemas**. Add them, save, wait ~30 s. |
+| Inserts return `new row violates row-level security policy` | The client is not using `.schema("iip")` / `.schema("shared")` \u2014 the default `public` schema has no RLS policy for these tables. Apply the code follow-up above. |
 | Nightly retrain fails with `AuthError: Not enough permissions` | The `HF_TOKEN` secret on GitHub is a Read token, not a Write token. Regenerate with Write role. |
 | Nightly retrain fails reading hands | The `SUPABASE_SERVICE_KEY` secret on GitHub is the anon key, not the service-role key. RLS blocks anon reads by design. |
 | UnicodeEncodeError with `'\u2192'` on Windows CLI | Set `PYTHONIOENCODING=utf-8` before running `iip ...`, or use an ASCII shell. Cloud Linux is unaffected. |

@@ -72,7 +72,7 @@ streamlit run app/streamlit_app.py
    SUPABASE_URL = "https://xxxx.supabase.co"
    SUPABASE_KEY = "anon-key"         # service-role key only for retrain; app uses anon
    ```
-4. In Supabase, create the `hands` table using the schema in `src/iip/io/supabase_client.py`.
+4. In Supabase, run [`scripts/supabase_schema.sql`](scripts/supabase_schema.sql). The project is **shared** with other hobby apps (Lexico, future ones) under a schema-per-app layout — `iip.hands` for content, `shared.app_events` for cross-app traffic. See [`docs/deployment-guide.md`](docs/deployment-guide.md) for the one-time shared-project setup.
 5. The app loads the latest checkpoint on boot. If HF isn't configured it falls back to `checkpoints/local/deepcfr.pt`.
 
 ## Human-in-the-loop retraining
