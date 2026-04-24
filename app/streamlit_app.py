@@ -20,7 +20,7 @@ import streamlit as st  # noqa: E402
 from app.services.bot_loader import load_bot_and_meta  # noqa: E402
 from app.services.session_tracker import track_session_once  # noqa: E402
 
-st.set_page_config(page_title="Incomplete-Info-Problem — Play vs Bot", page_icon="🃏", layout="wide")
+st.set_page_config(page_title="Play vs PokerBot", page_icon="♥️♠️♦️♣️", layout="wide")
 
 st.title("Incomplete-Info-Problem")
 st.caption(
