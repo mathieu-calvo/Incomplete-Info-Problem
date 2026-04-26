@@ -59,16 +59,19 @@ class HandStore:
     def is_configured(self) -> bool:
         return self._client is not None
 
-    def insert_hand(self, rec: HandRecord) -> dict[str, Any] | None:
+    def insert_hand(self, rec: HandRecord) -> bool:
+        # `returning="minimal"` sends Prefer: return=minimal so PostgREST skips
+        # the RETURNING clause. Anon has INSERT but not SELECT on iip.hands —
+        # without this the insert errors with 42501 "permission denied for table hands".
         if not self.is_configured:
-            return None
+            return False
         payload = asdict(rec)
         payload["action_log"] = json.dumps(rec.action_log)
         payload["bot_policies"] = json.dumps(rec.bot_policies)
-        resp = (
-            self._client.schema("iip").table("hands").insert(payload).execute()  # type: ignore[union-attr]
-        )
-        return resp.data[0] if resp.data else None
+        self._client.schema("iip").table("hands").insert(  # type: ignore[union-attr]
+            payload, returning="minimal"
+        ).execute()
+        return True
 
     def log_session(
         self,
@@ -77,7 +80,7 @@ class HandStore:
         country: str | None = None,
         app_version: str | None = None,
         bot_checkpoint: str | None = None,
-    ) -> dict[str, Any] | None:
+    ) -> bool:
         """Log one ``session_start`` row to ``shared.app_events``.
 
         user_id mirrors session_id for IIP (no login, so the session UUID is
@@ -85,7 +88,7 @@ class HandStore:
         so ``shared.app_events`` stays the same tiny shape across apps.
         """
         if not self.is_configured:
-            return None
+            return False
         payload = {
             "app": "iip",
             "event": "session_start",
@@ -98,10 +101,10 @@ class HandStore:
                 "bot_checkpoint": bot_checkpoint,
             },
         }
-        resp = (
-            self._client.schema("shared").table("app_events").insert(payload).execute()  # type: ignore[union-attr]
-        )
-        return resp.data[0] if resp.data else None
+        self._client.schema("shared").table("app_events").insert(  # type: ignore[union-attr]
+            payload, returning="minimal"
+        ).execute()
+        return True
 
     def fetch_hands_since(self, since: datetime | None = None, limit: int = 10_000) -> list[dict[str, Any]]:
         if not self.is_configured:
