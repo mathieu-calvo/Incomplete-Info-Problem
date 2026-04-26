@@ -1,9 +1,8 @@
 """Rich table renderer — green felt, cards, chip stacks, pot, dealer button, street banner.
 
-Rendered via `st.iframe` (srcdoc) rather than `st.markdown`, because Streamlit's
-markdown parser breaks multi-line indented HTML blocks on blank lines. The iframe is isolated
-from the parent Streamlit DOM, which is fine since the table is display-only; all interaction
-(action buttons) lives in separate widgets below.
+Rendered via `st.html` rather than `st.markdown`, because Streamlit's markdown parser breaks
+multi-line indented HTML blocks on blank lines. CSS rules are scoped under `.iip-` to avoid
+colliding with the parent Streamlit DOM.
 """
 
 from __future__ import annotations
@@ -346,4 +345,4 @@ def render_table(
         f'</div>'
         f'</div>'
     )
-    st.iframe(srcdoc=_CSS + body, height=680, scrolling=False)
+    st.html(_CSS + body)
