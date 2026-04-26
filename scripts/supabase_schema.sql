@@ -118,6 +118,31 @@ CREATE POLICY "reads from service role"
     ON shared.app_events FOR SELECT USING (auth.role() = 'service_role');
 
 -- ---------------------------------------------------------------------------
+-- Grants
+--
+-- Custom schemas (anything other than `public`) start with no privileges
+-- granted to the Supabase API roles, so PostgREST returns
+-- `permission denied for schema iip` (SQLSTATE 42501) before RLS is even
+-- evaluated. RLS controls *which rows* a role can touch; these grants
+-- control *whether the role can see the schema/table at all*.
+-- ---------------------------------------------------------------------------
+
+GRANT USAGE ON SCHEMA iip    TO anon, authenticated, service_role;
+GRANT USAGE ON SCHEMA shared TO anon, authenticated, service_role;
+
+-- iip.hands: the Streamlit app (anon) inserts; the retrain script
+-- (service_role) reads and marks rows as consumed.
+GRANT INSERT                 ON iip.hands TO anon;
+GRANT SELECT, INSERT, UPDATE ON iip.hands TO service_role;
+
+-- shared.app_events: every app (anon) inserts; service_role reads.
+GRANT INSERT         ON shared.app_events TO anon;
+GRANT SELECT, INSERT ON shared.app_events TO service_role;
+
+-- BIGSERIAL on shared.app_events.id needs sequence USAGE for inserts.
+GRANT USAGE ON SEQUENCE shared.app_events_id_seq TO anon, service_role;
+
+-- ---------------------------------------------------------------------------
 -- Exposing the schemas to PostgREST (one-time, via the Supabase dashboard)
 -- ---------------------------------------------------------------------------
 -- The Supabase JS-style REST API (`supabase-py` client + anon key) only
