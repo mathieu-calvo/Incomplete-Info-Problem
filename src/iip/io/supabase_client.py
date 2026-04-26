@@ -106,6 +106,20 @@ class HandStore:
         ).execute()
         return True
 
+    def fetch_leaderboard(self, limit: int = 100) -> list[dict[str, Any]]:
+        """Per-user aggregates from the ``iip.leaderboard`` view. Anon-readable."""
+        if not self.is_configured:
+            return []
+        resp = (
+            self._client.schema("iip")  # type: ignore[union-attr]
+            .table("leaderboard")
+            .select("*")
+            .order("mbbph", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return list(resp.data or [])
+
     def fetch_hands_since(self, since: datetime | None = None, limit: int = 10_000) -> list[dict[str, Any]]:
         if not self.is_configured:
             return []

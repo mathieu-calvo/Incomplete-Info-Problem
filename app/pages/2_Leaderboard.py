@@ -22,18 +22,11 @@ if not store.is_configured:
     st.info("Supabase isn't configured — leaderboard requires persistent hand storage.")
     st.stop()
 
-records = store.fetch_hands_since(limit=5000)
+records = store.fetch_leaderboard(limit=100)
 if not records:
     st.info("No hands logged yet.")
     st.stop()
 
-df = pd.DataFrame(records)
-# Aggregate per user: total mbb/h, hands, win rate.
-df["mbb"] = df["payoff_hero"] * 500  # 1 chip = BB/2 ... sb=1, bb=2 in defaults → 1 chip = 500 mbb
-agg = (
-    df.groupby("user_id")
-      .agg(hands=("mbb", "count"), mbb_sum=("mbb", "sum"), mbbph=("mbb", "mean"))
-      .sort_values("mbbph", ascending=False)
-)
-agg["mbbph"] = agg["mbbph"].round(2)
-st.dataframe(agg)
+df = pd.DataFrame(records).set_index("user_id")
+df["mbbph"] = df["mbbph"].round(2)
+st.dataframe(df)

@@ -74,6 +74,29 @@ CREATE POLICY "training marks from service role"
 -- now writes one `session_start` row per tab to `shared.app_events` below.
 
 -- ---------------------------------------------------------------------------
+-- iip.leaderboard — per-user aggregates over iip.hands
+--
+-- The Streamlit Leaderboard page reads this view with the anon key. Anon
+-- has no SELECT on iip.hands itself, so we expose only safe aggregates here:
+-- session UUID, hand count, total mbb, mbb/h. No hole cards, no action logs.
+--
+-- Postgres views default to running as the view owner (security definer-like)
+-- so this bypasses iip.hands RLS by design — that is the whole point of the
+-- view. Granting SELECT on the underlying table to anon would defeat it.
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE VIEW iip.leaderboard AS
+SELECT
+    user_id,
+    count(*)::int             AS hands,
+    (sum(payoff_hero) * 500)  AS mbb_sum,
+    (avg(payoff_hero) * 500)  AS mbbph
+FROM iip.hands
+WHERE user_id IS NOT NULL
+  AND payoff_hero IS NOT NULL
+GROUP BY user_id;
+
+-- ---------------------------------------------------------------------------
 -- shared.app_events — cross-app traffic / engagement log
 --
 -- ONE row per interesting event across every app on this Supabase project.
@@ -131,9 +154,11 @@ GRANT USAGE ON SCHEMA iip    TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA shared TO anon, authenticated, service_role;
 
 -- iip.hands: the Streamlit app (anon) inserts; the retrain script
--- (service_role) reads and marks rows as consumed.
-GRANT INSERT                 ON iip.hands TO anon;
-GRANT SELECT, INSERT, UPDATE ON iip.hands TO service_role;
+-- (service_role) reads and marks rows as consumed. Anon CANNOT select
+-- from iip.hands directly — leaderboard reads go through iip.leaderboard.
+GRANT INSERT                 ON iip.hands       TO anon;
+GRANT SELECT, INSERT, UPDATE ON iip.hands       TO service_role;
+GRANT SELECT                 ON iip.leaderboard TO anon, service_role;
 
 -- shared.app_events: every app (anon) inserts; service_role reads.
 GRANT INSERT         ON shared.app_events TO anon;
