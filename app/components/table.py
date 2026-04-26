@@ -1,6 +1,6 @@
 """Rich table renderer — green felt, cards, chip stacks, pot, dealer button, street banner.
 
-Rendered via `st.components.v1.html` (iframe) rather than `st.markdown`, because Streamlit's
+Rendered via `st.iframe` (srcdoc) rather than `st.markdown`, because Streamlit's
 markdown parser breaks multi-line indented HTML blocks on blank lines. The iframe is isolated
 from the parent Streamlit DOM, which is fine since the table is display-only; all interaction
 (action buttons) lives in separate widgets below.
@@ -8,7 +8,7 @@ from the parent Streamlit DOM, which is fine since the table is display-only; al
 
 from __future__ import annotations
 
-import streamlit.components.v1 as components
+import streamlit as st
 
 from iip.engine.cards import RANK_CHAR, Card
 from iip.engine.game import HULHEState, Street
@@ -346,4 +346,4 @@ def render_table(
         f'</div>'
         f'</div>'
     )
-    components.html(_CSS + body, height=680, scrolling=False)
+    st.iframe(srcdoc=_CSS + body, height=680, scrolling=False)
