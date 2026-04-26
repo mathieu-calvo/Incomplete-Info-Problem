@@ -25,7 +25,7 @@ dependencies = [
 
 [project.optional-dependencies]
 app = [
-    "streamlit>=1.36",
+    "streamlit>=1.43",
     "supabase>=2.5",
     "huggingface_hub>=0.24",
 ]
