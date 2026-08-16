@@ -7,10 +7,10 @@
       "hero_name": "PPO",
       "villain_name": "Fish",
       "hands": 20000,
-      "mbbph": -20.45,
-      "ci95": 36.442832185008385,
-      "hero_wins": 9538,
-      "villain_wins": 9642,
+      "mbbph": -29.625,
+      "ci95": 39.85486221643308,
+      "hero_wins": 9433,
+      "villain_wins": 9747,
       "ties": 820
     },
     {
@@ -18,36 +18,36 @@
       "hero_name": "PPO",
       "villain_name": "StrengthHand",
       "hands": 20000,
-      "mbbph": -1241.45,
-      "ci95": 76.08879160350875,
-      "hero_wins": 9591,
-      "villain_wins": 9586,
-      "ties": 823
+      "mbbph": -1373.4,
+      "ci95": 81.48548355674599,
+      "hero_wins": 9515,
+      "villain_wins": 9718,
+      "ties": 767
     },
     {
       "opponent": "starting",
       "hero_name": "PPO",
       "villain_name": "StartingHand",
       "hands": 20000,
-      "mbbph": -400.275,
-      "ci95": 61.89542164841437,
-      "hero_wins": 9405,
-      "villain_wins": 9828,
-      "ties": 767
+      "mbbph": -365.225,
+      "ci95": 68.49449106972979,
+      "hero_wins": 9446,
+      "villain_wins": 9727,
+      "ties": 827
     },
     {
       "opponent": "random",
       "hero_name": "PPO",
       "villain_name": "Random",
       "hands": 20000,
-      "mbbph": 1549.25,
-      "ci95": 38.69216768477836,
-      "hero_wins": 18304,
-      "villain_wins": 1576,
-      "ties": 120
+      "mbbph": 1597.3,
+      "ci95": 39.9778715097155,
+      "hero_wins": 18309,
+      "villain_wins": 1554,
+      "ties": 137
     }
   ],
   "vs_previous_mbbph": null,
-  "lbr_mbbph": 1742.0,
+  "lbr_mbbph": 2310.0,
   "regressed": false
 }
